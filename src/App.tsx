@@ -1,33 +1,38 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState, useRef, useCallback } from 'react'
+// import reactLogo from './assets/react.svg'
+// import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [files, setFiles] = useState<File[]>([]);
+  const inputFile = useRef(null);
+
+  const onFileChange = useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
+    console.log(`onFileChange()...`, ev);
+    if (ev.target.files && ev.target.files.length > 0) { // weirdly no array but obj with .length ...
+      const files = ev.target.files;
+      console.log(`onFileChange() got ${files.length} files`, files);
+      for (const file of files) {
+        console.log(`File='${file.name}' with size=${file.size} ${file.type}`);
+        setFiles(d => [...d, file]);
+      }
+    } else {
+      console.error(`onFileChange()... got no files!`, ev);
+    }
+  }, []);
 
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
+      <h1>ATX viewer</h1>
+      <input type='file' id='inputFile' ref={inputFile} onChange={onFileChange} />
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+        {files.length === 0 && <p>
+          Open a asam atx test report file...
+        </p>}
+        {files.length > 0 && <ol>
+          {files.map((f, idx) => <li key={'' + idx + f.name} >{f.name}</li>)}
+        </ol>}
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   )
 }
