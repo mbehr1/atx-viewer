@@ -11,7 +11,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, Title);
 import './App.css'
 import { XMLParser } from 'fast-xml-parser'
 import { AtxExecOverview } from './AtxExecOverview';
-import Dropzone, { DropEvent, FileRejection } from 'react-dropzone';
+import Dropzone, { FileRejection } from 'react-dropzone';
 import { AtxTestReport, atxReportParse, getReportTestName } from './atxReportParser';
 
 type JSONValue = | string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -29,28 +29,7 @@ function App() {
   const [files, setFiles] = useState<File[]>([])
   const [testReports, setTestReports] = useState<AtxTestReport[]>([])
 
-/*  const inputFile = useRef(null)
-
-  const onFileChange = useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
-    // console.log(`onFileChange()...`, ev);
-    if (ev.target.files && ev.target.files.length > 0) { // weirdly no array but obj with .length ...
-      const files = ev.target.files;
-      console.log(`onFileChange() got ${files.length} files`, files);
-      const fileArray: File[] = [];
-      for (const file of files) {
-        console.log(`File='${file.name}' with size=${file.size} ${file.type}`);
-        fileArray.push(file);
-      }
-      setFiles(d => {
-        const nonDuplFiles = fileArray.filter(f => !includesFile(d, f))
-        return d.concat(nonDuplFiles)
-      });
-    } else {
-      console.error(`onFileChange()... got no files!`, ev)
-    }
-  }, [])*/
-
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[], event: DropEvent) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[],) => {
     try {
       //const length = event.dataTransfer.files.length;
       console.log(`onDrop acceptedFile length=${acceptedFiles.length} rejectedFiles: ${rejectedFiles.length}`);
