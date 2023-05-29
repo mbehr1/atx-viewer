@@ -2,6 +2,7 @@ import { Pie } from 'react-chartjs-2'
 
 import { useCallback, useEffect, useState } from 'react';
 import { AtxTestReport, getFolderStats, getReportTestName, getTestCases, SummaryStats } from './atxReportParser.ts';
+import { LegendItem } from 'chart.js';
 
 // ChartJS.register(ArcElement);
 
@@ -50,8 +51,27 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
             hoverOffset: 20,
         }
         return <div >
-            <Pie options={{ plugins: { tooltip: { callbacks: { title: () => props.reports.map(r => getReportTestName(r)).join(',') } }, legend: { title: { text: `${props.reports.map(r => getReportTestName(r)).join(',')}: ${Number(summaryStats.totalExecutionTime / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })}min`, display: true } } } }} data={{
-                labels: ['passed', 'failed', 'skipped', 'none'],
+            <Pie options={{
+                plugins: {
+                    tooltip: {
+                        callbacks: { title: () => props.reports.map(r => getReportTestName(r)).join(',') }
+                    },
+                    legend: {
+                        title: { text: `${props.reports.map(r => getReportTestName(r)).join(',')}: ${Number(summaryStats.totalExecutionTime / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })}min`, display: true },
+                        labels: {
+                            generateLabels: (() => {
+                                return [
+                                    summaryStats.passed > 0 ? { text: 'passed', fillStyle: 'green' } : undefined,
+                                    summaryStats.failed > 0 ? { text: 'failed', fillStyle: 'red' } : undefined,
+                                    summaryStats.skipped > 0 ? { text: 'skipped', fillStyle: 'grey' } : undefined,
+                                    summaryStats.none > 0 ? { text: 'none', fillStyle: 'white' } : undefined,
+                                ].filter(f => f !== undefined) as LegendItem[]
+                            })
+                        }
+                    }
+                }
+            }} data={{
+                // labels: ['passed', 'failed', 'skipped', 'none'], using generateLabels to assign proper color
                 datasets: [detailedDataset,
                     {
                         label: 'Total',
