@@ -1,5 +1,5 @@
 #root {
-  max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
@@ -34,9 +34,24 @@
 }
 
 .card {
+  width: 100%;
   padding: 2em;
 }
 
+.testSummaryContainer {
+  display: flex;
+  gap: 2em;
+}
+
+.testSummaryItem {
+  flex-shrink: 0;
+  flex-basis: 33%;
+}
+
+.testSingleContainer {
+  display: flex;
+  flex-wrap: wrap;
+}
 .read-the-docs {
   color: #888;
 }
