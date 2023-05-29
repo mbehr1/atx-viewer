@@ -1,7 +1,7 @@
 import { Pie } from 'react-chartjs-2'
 
 import { useCallback, useEffect, useState } from 'react';
-import { AtxTestReport, getFolderStats, getReportTestName, getTestCases, SummaryStats } from './atxReportParser.ts';
+import { AtxTestCase, AtxTestReport, getFolderStats, getReportTestName, getTestCases, SummaryStats } from './atxReportParser.ts';
 import { LegendItem } from 'chart.js';
 
 // ChartJS.register(ArcElement);
@@ -49,12 +49,53 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
             backgroundColor: detailsColors,
             borderWidth: 0,
             hoverOffset: 20,
+            _privData: detailTcs, 
         }
         return <div >
             <Pie options={{
                 plugins: {
                     tooltip: {
-                        callbacks: { title: () => props.reports.map(r => getReportTestName(r)).join(',') }
+                        bodyFont: {
+                            size: 8
+                        },
+                        callbacks: {
+                            title: () => props.reports.map(r => getReportTestName(r)).join(','),
+                            label: (ctx) => {
+                                let label = ctx.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (ctx.parsed !== null) {
+                                    label += new Intl.NumberFormat().format(ctx.parsed);
+                                }
+                                if (ctx.datasetIndex === 0) {
+                                    // detailed dataset
+                                    label += 's'
+                                    let tcDetails = ''
+                                    if ('_privData' in ctx.dataset) {
+                                        const pd = ctx.dataset._privData
+                                        if (Array.isArray(pd)) {
+                                            const tc = pd[ctx.dataIndex] as AtxTestCase
+                                            if (tc) {
+                                                tcDetails += `TC: ${tc.shortName} ${tc.verdict}`
+                                            }
+                                        }
+                                    }
+                                    // split after min 30chars at word boundary, after 50 chars hard
+                                    const wrappedDetails = tcDetails.split(/(.{30,}?\b)\s/g).map(str => str.split(/(.{50,}?)/g)).flat().filter(str => str.length > 0)
+                                    //console.log(`wrappedDetails: ${JSON.stringify(wrappedDetails)}`);
+                                    return [label, wrappedDetails].flat()
+                                } else {
+                                    switch (ctx.dataIndex) {
+                                        case 0: label += ' passed'; break;
+                                        case 1: label += ' failed'; break;
+                                        case 2: label += ' skipped'; break;
+                                        case 3: label += ' verdict none'; break;
+                                    }
+                                    return label
+                                }
+                            },
+                        }
                     },
                     legend: {
                         title: { text: `${props.reports.map(r => getReportTestName(r)).join(',')}: ${Number(summaryStats.totalExecutionTime / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })}min`, display: true },
