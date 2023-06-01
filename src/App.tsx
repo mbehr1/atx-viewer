@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 
 import { Chart as ChartJS, ArcElement, Title, Tooltip, Legend } from 'chart.js'
+import { fromEvent } from 'file-selector';
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
@@ -46,26 +47,6 @@ function App() {
     }
   }, [])
 
-  // load the files as xml:
-  /*useEffect(() => {
-    files.map(file => {
-      d3.xml(URL.createObjectURL(file)).then((xmlDoc) => {
-        console.log(`useEffect on file (${file.name}): got xmlDoc '${xmlDoc.nodeName}' with #${xmlDoc.childElementCount} children`);
-        for (const child of xmlDoc.children) {
-          console.log(`useEffect on files: got child tagName:'${child.tagName}' with #${child.childElementCount} children`);
-          const childO = child;
-          for (const child of childO.children) {
-            console.log(`useEffect on files:  got child tagName:'${child.tagName}' with #${child.childElementCount} children`);
-
-          }
-        }
-      }, (e) => {
-        console.error(`d3.xml failed with: `, e);
-      }
-      );
-    })
-  }, [files])*/
-
   // load/open the files as json
   useEffect(() => {
     const parser = new XMLParser({ isArray: (name) => ['PLANNED-TEST-CASES', 'PLANNED-TEST-CASE', 'PLANNED-TEST-CASE-FOLDER', 'DOC-REVISIONS', 'TEST-CASE-FOLDER', 'TEST-CASES', 'TEST-CASE', 'AR-PACKAGE', 'AR-PACKAGES'].includes(name) });
@@ -108,7 +89,7 @@ function App() {
   return (
     <>
       <h1>ATX viewer{!window.isSecureContext ? ' !no secure context!' : ''}</h1>
-      <Dropzone onDrop={onDrop}>
+      <Dropzone onDrop={onDrop} getFilesFromEvent={fromEvent}>
         {({ getRootProps, getInputProps }) => (
           <section>
             <div {...getRootProps()}>

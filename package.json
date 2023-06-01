@@ -12,6 +12,7 @@
   "dependencies": {
     "chart.js": "^4.3.0",
     "fast-xml-parser": "^4.2.2",
+    "file-selector": "github:mbehr1/file-selector",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
