@@ -50,6 +50,7 @@ export interface AtxTestStepFolder {
     shortName: string,
     longName?: string,
     verdict?: string,
+    expectedResult?: string,
     steps: AtxTestStepFolder[]
 }
 
@@ -302,6 +303,30 @@ const getDesc = (elem: JSONValue): string | undefined => {
         }
     }
     console.warn(`getDesc returning undefined!`, delem)
+    return undefined
+}
+
+const getExpectedResult = (elem: JSONValue): string | undefined => {
+    const verdD = getFirstMember(elem, 'VERDICT-DEFINITION')
+    if (verdD && Array.isArray(verdD)) {
+        const er = getFirstMember(verdD, 'EXPECTED-RESULT')
+        if (er && Array.isArray(er)) {
+            const p = getFirstMember(er, 'P')
+            if (p && Array.isArray(p)) {
+                for (const lel of p) {
+                    for (const [key, value] of Object.entries(lel)) {
+                        switch (key) {
+                            case 'L-1':
+                                return getInnerText(value)
+                            default:
+                                console.warn(`getExpectedResult unknown key '${key}'`, value)
+                        }
+                    }
+                }
+            }
+        }
+        console.warn(`getExpectedResult returning undefined!`, verdD)
+    }
     return undefined
 }
 
@@ -653,7 +678,7 @@ const parseTestStepFolders = (folder: JSONValue): AtxTestStepFolder[] => {
                                 const st = parseTestStepFolders(value)
                                 for (const s of st) { steps.push(s) }
                             } break;
-                        case 'VERDICT-DEFINITION': break;
+                        //case 'VERDICT-DEFINITION': break;
                         case 'SHORT-NAME':
                         case 'VERDICT-RESULT':
                         case 'LONG-NAME': break;
@@ -687,6 +712,7 @@ const parseTestStep = (step: JSONValue): AtxTestStepFolder | undefined => {
         const longName = getLongName(step)
         const verdR = getFirstMember(step, 'VERDICT-RESULT')
         const verdict = verdR && Array.isArray(verdR) ? getText(verdR, 'VERDICT') : undefined
+        const expectedResult = getExpectedResult(step)
         if (getFirstMember(step, 'TEST-STEP-FOLDER') || getFirstMember(step, 'TEST-STEP')) {
             console.warn(`parseTestStep with TEST-STEP-FOLDER!`)
         }
@@ -695,6 +721,7 @@ const parseTestStep = (step: JSONValue): AtxTestStepFolder | undefined => {
                 shortName,
                 longName,
                 verdict: typeof verdict === 'string' ? verdict : undefined,
+                expectedResult,
                 steps: []
             }
         }

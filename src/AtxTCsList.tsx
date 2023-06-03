@@ -46,8 +46,19 @@ const TestStepFolder = (props: TestStepFolderProps) => {
     const borderColor = useMemo(() => mapVerdictToColor(getVerdictForFolder(folder)), [folder])
     const [showSteps, setShowSteps] = useState(folder.steps.length === 0 || !['green', 'white', 'grey'].includes(borderColor))
 
-    return (<div onClick={(e) => { if (folder.steps.length > 0) { setShowSteps(v => !v); } e.preventDefault(); e.stopPropagation() }} className="tcf" style={{ borderLeft: `1px solid ${borderColor}` }}>
-        <div>{`${folder.verdict ? folder.verdict + ': ' : ''}${folder.longName || folder.shortName}${showSteps ? '' : `, steps ${folder.steps.length}`}`}</div>
+    return (<div
+        onClick={(e) => {
+            if (folder.steps.length > 0) {
+                setShowSteps(v => !v);
+            }
+            e.preventDefault();
+            e.stopPropagation()
+        }}
+        className="tcf" style={{ borderLeft: `1px solid ${borderColor}` }}>
+        <div>
+            <span>{`${folder.verdict ? folder.verdict + ': ' : ''}${folder.longName || folder.shortName}${showSteps ? '' : `, steps ${folder.steps.length}`}`}</span>
+            {folder.expectedResult && <pre className="tcExpectedResult" >{folder.expectedResult}</pre>}
+        </div>
         {showSteps && folder.steps.length > 0 && <ul>
             {folder.steps.map((step, idx) => (<TestStepFolder folder={step} key={step.shortName + idx.toString()} />))}
         </ul>}

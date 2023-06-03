@@ -2,6 +2,9 @@ pre {
     font-family: monospace;
     color: black;
 }
+pre.inline {
+    display: inline;
+}
 .tc {
     text-align: left;
     padding-left: 0.5em;
@@ -11,6 +14,12 @@ pre {
 .tcDesc {
     background-color: lightgray;
     padding: 0.5em;
+}
+.tcExpectedResult {
+    background-color: lightgray;
+    margin-left: 1em;
+    padding: 2px;
+    display: inline;
 }
 .tcf {
     padding-left: 0.5em;
