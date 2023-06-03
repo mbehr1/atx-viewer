@@ -1,8 +1,8 @@
 /** 
  * todo:
- * [ ] TEST-CASE.DESC support
  * [ ] TEST-CASE-ATTRIBUTES support (e.g. show SDGs in table)
  * [ ] TEST-STEP/TEST-STEP-FOLDER.EXPECTED-RESULT support
+ * [ ] TEST-CASE proper name from test-plan not from test-execution
 */
 
 
@@ -29,6 +29,7 @@ export interface AtxTestReport {
 export interface AtxTestCase {
     shortName: string,
     longName?: string,
+    desc?: string,
     // todo add executedAtDate?
     executionTimeInSec?: number,
     verdict: string, // one of PASSED, FAILED, NONE, INCONCLUSIVE, ERROR // todo how to handle EVALUATED/AGGREGATED?
@@ -223,12 +224,16 @@ const getAllMember = (a: JSONValue, member: string): JSONValue[] => {
 }
 
 const getInnerText = (val: JSONValue): string | undefined => {
-    if (Array.isArray(val) && val.length === 1 && typeof val[0] === 'object' && '#text' in val[0]) {
-        const t = val[0]['#text']
-        if (typeof t === 'string') {
-            return t
-        } else if (typeof t === 'number') {
-            return t.toString()
+    if (Array.isArray(val)) {
+        if (val.length === 1 && typeof val[0] === 'object' && '#text' in val[0]) {
+            const t = val[0]['#text']
+            if (typeof t === 'string') {
+                return t
+            } else if (typeof t === 'number') {
+                return t.toString()
+            }
+        } else if (val.length === 0) {
+            return undefined // normal, no inner text
         }
     }
     console.warn(`getInnerText wrong type`, val)
@@ -263,6 +268,40 @@ const getText = (a: JSONValue, member: string): string | undefined => {
     } else {
         console.error(`getText(${member}) called on nullish`, a)
     }
+    return undefined
+}
+
+const getLongName = (elem: JSONValue): string | undefined => {
+    const lelem = getFirstMember(elem, 'LONG-NAME')
+    if (Array.isArray(lelem)) {
+        for (const lel of lelem) {
+            for (const [key, value] of Object.entries(lel)) {
+                switch (key) {
+                    case 'L-4': return getInnerText(value)
+                    default:
+                        console.warn(`getLongName unknown key '${key}'`, value)
+                }
+            }
+        }
+    }
+    console.warn(`getLongName returning undefined!`, lelem)
+    return undefined
+}
+
+const getDesc = (elem: JSONValue): string | undefined => {
+    const delem = getFirstMember(elem, 'DESC')
+    if (Array.isArray(delem)) {
+        for (const lel of delem) {
+            for (const [key, value] of Object.entries(lel)) {
+                switch (key) {
+                    case 'L-2': return getInnerText(value)
+                    default:
+                        console.warn(`getDesc unknown key '${key}'`, value)
+                }
+            }
+        }
+    }
+    console.warn(`getDesc returning undefined!`, delem)
     return undefined
 }
 
@@ -503,9 +542,11 @@ const parseTestCase = (testCase: JSONObject[]): AtxTestCase | undefined => {
                 if (verdict) {
                     const steps: AtxTestStepFolder[] = []
                     const execTime = getText(testCase, 'EXECUTION-TIME')
+                    const desc = getDesc(testCase)
 
                     const testC: AtxTestCase = {
                         shortName,
+                        desc,
                         executionTimeInSec: execTime ? Number(execTime) : undefined,
                         verdict,
                         steps,
@@ -584,23 +625,6 @@ const parseTestSteps = (folder: JSONValue[], shortName: string): AtxTestStepFold
         }
     }
     return res
-}
-
-const getLongName = (elem: JSONValue): string | undefined => {
-    const lelem = getFirstMember(elem, 'LONG-NAME')
-    if (Array.isArray(lelem)) {
-        for (const lel of lelem) {
-            for (const [key, value] of Object.entries(lel)) {
-                switch (key) {
-                    case 'L-4': return getInnerText(value)
-                    default:
-                        console.warn(`getLongName unknown key '${key}'`, value)
-                }
-            }
-        }
-    }
-    console.warn(`getLongName returning undefined!`, lelem)
-    return undefined
 }
 
 const parseTestStepFolders = (folder: JSONValue): AtxTestStepFolder[] => {

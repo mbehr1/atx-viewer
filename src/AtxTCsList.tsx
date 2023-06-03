@@ -19,10 +19,19 @@ interface TCNodeProps {
 const TCNode = (props: TCNodeProps) => {
     const { tc } = props
     const [showSteps, setShowSteps] = useState(props.expandSteps)
+    const [showDesc, setShowDesc] = useState(showSteps)
     const borderColor = useMemo(() => mapVerdictToColor(tc.verdict), [tc.verdict])
+
+    const descHasMultiLines = useMemo(() => tc.desc && tc.desc.split('\n').length > 1, [tc.desc])
+    const descFirstLine = useMemo(() => {
+        const firstLine = tc.desc?.split('\n')[0] || '';
+        return firstLine.length > 120 ? firstLine.slice(0, 95) + '... <click to show more>' : firstLine
+    }, [tc.desc])
 
     return (<div onClick={(e) => { if (tc.steps.length > 0) { setShowSteps(v => !v); } e.preventDefault(); e.stopPropagation() }} className="tc" style={{ borderLeft: `1px solid ${borderColor}` }}>
         <div>{`${tc.longName || tc.shortName}${tc.executionTimeInSec !== undefined ? `, duration ${tc.executionTimeInSec}s` : ''}`}</div>
+        {tc.desc && showSteps && (showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{tc.desc}</pre>}
+        {tc.desc && showSteps && !(showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{descFirstLine}</pre>}
         <ul style={{ paddingLeft: "10px", borderLeft: `1px solid ${borderColor}` }}>
             {showSteps && tc.steps.map((step, idx) => (<TestStepFolder folder={step} key={step.shortName + idx.toString()} />))}
         </ul>

@@ -1,9 +1,17 @@
+pre {
+    font-family: monospace;
+    color: black;
+}
 .tc {
     text-align: left;
     padding-left: 0.5em;
     margin-top: 6px;
 }
 
+.tcDesc {
+    background-color: lightgray;
+    padding: 0.5em;
+}
 .tcf {
     padding-left: 0.5em;
     margin-top: 4px;
