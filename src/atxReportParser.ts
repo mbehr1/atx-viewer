@@ -1,3 +1,10 @@
+/** 
+ * todo:
+ * [ ] TEST-CASE.DESC support
+ * [ ] TEST-CASE-ATTRIBUTES support (e.g. show SDGs in table)
+ * [ ] TEST-STEP/TEST-STEP-FOLDER.EXPECTED-RESULT support
+*/
+
 
 type JSONValue = | string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
 export type JSONObject = { [x: string]: JSONValue };
@@ -21,9 +28,11 @@ export interface AtxTestReport {
  */
 export interface AtxTestCase {
     shortName: string,
+    longName?: string,
     // todo add executedAtDate?
     executionTimeInSec?: number,
     verdict: string, // one of PASSED, FAILED, NONE, INCONCLUSIVE, ERROR // todo how to handle EVALUATED/AGGREGATED?
+    steps: AtxTestStepFolder[],
 }
 
 export interface AtxTestCaseFolder {
@@ -31,6 +40,57 @@ export interface AtxTestCaseFolder {
     longName?: string,
     testCases: (AtxTestCase | AtxTestCaseFolder)[], // todo clarify how test repetitions are handled
 }
+
+/**
+ * Contains info about test step or test steps (folder)
+ * For test step the steps array is empty.
+ */
+export interface AtxTestStepFolder {
+    shortName: string,
+    longName?: string,
+    verdict?: string,
+    steps: AtxTestStepFolder[]
+}
+
+/**
+ * map verdict string (PASSED/FAILED|ERROR/NONE) to colors (green/red/white/grey)
+ * @param verdict 
+ * @returns green for PASSED, red for FAILED or ERROR, white for NONE, grey otherwise
+ */
+export const mapVerdictToColor = (verdict: string | undefined): string => {
+    switch (verdict) {
+        case 'PASSED': return 'green'
+        case 'FAILED':
+        case 'ERROR': return 'red'
+        case 'NONE': return 'white'
+    }
+    return 'grey'
+}
+
+/**
+ * Determine the verdict for a test step folder.
+ * If the folder contains a verdict return that one.
+ * Otherwise query verdict of all the folders steps and return by severity: ERROR or FAILED or PASSED or NONE.
+ * E.g. if one step is PASSED and one is FAILED and the folder has no verdict: FAILED is returned.
+ * @param folder - test step folder
+ * @returns the verdict or undefined
+ */
+export const getVerdictForFolder = (folder: AtxTestStepFolder): string | undefined => {
+    if (folder.verdict) { return folder.verdict } else {
+        // folder has no verdict. so lets get verdict from the steps contained
+        const verdicts: { [x: string]: boolean } = {}
+        for (const step of folder.steps) {
+            const verdict = getVerdictForFolder(step)
+            if (verdict) { verdicts[verdict] = true }
+        }
+        if (verdicts.ERROR) return 'ERROR';
+        if (verdicts.FAILED) return 'FAILED';
+        if (verdicts.PASSED) return 'PASSED';
+        if (verdicts.NONE) return 'NONE';
+    }
+    return undefined
+}
+
 
 export interface AtxPlannedTestCaseFolder {
     shortName: string,
@@ -156,6 +216,19 @@ const getAllMember = (a: JSONValue, member: string): JSONValue[] => {
     return members
 }
 
+const getInnerText = (val: JSONValue): string | undefined => {
+    if (Array.isArray(val) && val.length === 1 && typeof val[0] === 'object' && '#text' in val[0]) {
+        const t = val[0]['#text']
+        if (typeof t === 'string') {
+            return t
+        } else if (typeof t === 'number') {
+            return t.toString()
+        }
+    }
+    console.warn(`getInnerText wrong type`, val)
+    return undefined
+}
+
 /**
  * get the text element as string. can be a number as well that gets converted
  * @param a 
@@ -168,30 +241,14 @@ const getText = (a: JSONValue, member: string): string | undefined => {
             for (const m of a) {
                 if (typeof m === 'object' && !Array.isArray(m) && member in m) {
                     const val = m[member]
-                    if (Array.isArray(val) && val.length === 1 && typeof val[0] === 'object' && '#text' in val[0]) {
-                        const t = val[0]['#text']
-                        if (typeof t === 'string') {
-                            return t
-                        } else if (typeof t === 'number') {
-                            return t.toString()
-                        }
-                    }
-                    console.warn(`getText(${member}) wrong type`, m)
+                    return getInnerText(val)
                 }
             }
         } else {
             if (typeof a === 'object') {
                 if (member in a) {
                     const val = a[member]
-                    if (Array.isArray(val) && val.length === 1 && typeof val[0] === 'object' && '#text' in val[0]) {
-                        const t = val[0]['#text']
-                        if (typeof t === 'string') {
-                            return t
-                        } else if (typeof t === 'number') {
-                            return t.toString()
-                        }
-                    }
-                    console.warn(`getText(${member}) wrong type`, a)
+                    return getInnerText(val)
                 }
             } else {
                 console.error(`getText(${member}) called on wrong type '${typeof a}'`, a)
@@ -293,7 +350,7 @@ const getTestSpecObjs = (atxOrPkg: JSONValue[]): [JSONValue, JSONValue][] => {
                                     if (Array.isArray(spec) && getText(spec, 'CATEGORY') === 'ATX_TEST_REPORT') {
                                         res.push(spec)
                                     }
-                                }
+                                }   
                                 for (const plan of getAllMember(elem, 'TEST-EXECUTION-PLAN')) {
                                     plans.push(plan)
                                 }
@@ -358,18 +415,18 @@ const parsePlannedTestCaseFolder = (folder: JSONObject[]): AtxPlannedTestCaseFol
             // console.log(`parsePlannedTestCaseFolder(${folderContent['SHORT-NAME']})...'`, Object.keys(folderContent));
             const shortName = getText(folder, 'SHORT-NAME')
             const testCases = getFirstMember(folder, 'PLANNED-TEST-CASES')
-                if (testCases && Array.isArray(testCases)) {
-                    if (shortName && typeof shortName === 'string') {
-                        const f: AtxPlannedTestCaseFolder = {
-                            shortName,
-                            plannedTestCases: parsePlannedTestCases(testCases),
-                        }
-                        res.push(f)
+            if (testCases && Array.isArray(testCases)) {
+                if (shortName && typeof shortName === 'string') {
+                    const f: AtxPlannedTestCaseFolder = {
+                        shortName,
+                        plannedTestCases: parsePlannedTestCases(testCases),
                     }
-                } else {
-                    console.warn(`parsePlannedTestCaseFolder ignoring folder ${JSON.stringify(shortName)} due to wrong TEST-CASES ${JSON.stringify(testCases)}`)
+                    res.push(f)
                 }
+            } else {
+                console.warn(`parsePlannedTestCaseFolder ignoring folder ${JSON.stringify(shortName)} due to wrong TEST-CASES ${JSON.stringify(testCases)}`)
             }
+        }
     } catch (e) {
         console.warn(`parsePlannedTestCaseFolder got err=${e}`)
     }
@@ -412,18 +469,18 @@ const parseTestCaseFolder = (folder: JSONObject[]): AtxTestCaseFolder[] => {
         if (Array.isArray(folder)) {
             const shortName = getText(folder, 'SHORT-NAME')
             const testCases = getFirstMember(folder, 'TEST-CASES')
-                if (testCases && Array.isArray(testCases)) {
-                    if (shortName && typeof shortName === 'string') {
-                        const f: AtxTestCaseFolder = {
-                            shortName,
-                            testCases: parseTestCases(testCases),
-                        }
-                        res.push(f)
+            if (testCases && Array.isArray(testCases)) {
+                if (shortName && typeof shortName === 'string') {
+                    const f: AtxTestCaseFolder = {
+                        shortName,
+                        testCases: parseTestCases(testCases),
                     }
-                } else {
-                    console.warn(`parseTestCaseFolder ignoring folder ${JSON.stringify(shortName)} due to wrong TEST-CASES ${JSON.stringify(testCases)}`)
+                    res.push(f)
                 }
+            } else {
+                console.warn(`parseTestCaseFolder ignoring folder ${JSON.stringify(shortName)} due to wrong TEST-CASES ${JSON.stringify(testCases)}`)
             }
+        }
     } catch (e) {
         console.warn(`parseTestCaseFolder got err=${e}`)
     }
@@ -447,10 +504,21 @@ const parseTestCase = (testCase: JSONObject[]): AtxTestCase | undefined => {
                         verdict,
                         steps,
                     }
-                    // fill steps, we do this afterwards as we ignore failures anyhow:
-                    //const tsfo = tc['TEST-EXECUTION-STEPS']
-                    //const tsf = tsfo !== undefined && typeof tsfo === 'object' && Array.isArray(tsfo) ? parseTestSteps(tsfo, `TEST-EXECUTION-STEPS`) : undefined
-                    //if (tsf) { steps.push(tsf) }
+                    {
+                        const tsfo = getFirstMember(testCase, 'TEST-SETUP-STEPS')
+                        const tsf = tsfo !== undefined && Array.isArray(tsfo) ? parseTestSteps(tsfo, 'TEST-SETUP-STEPS') : undefined
+                        if (tsf?.length) { steps.push(...tsf) }
+                    }
+                    {
+                        const tsfo = getFirstMember(testCase, 'TEST-EXECUTION-STEPS')
+                        const tsf = tsfo !== undefined && Array.isArray(tsfo) ? parseTestSteps(tsfo, 'TEST-EXECUTION-STEPS') : undefined
+                        if (tsf?.length) { steps.push(...tsf) }
+                    }
+                    {
+                        const tsfo = getFirstMember(testCase, 'TEST-TEARDOWN-STEPS')
+                        const tsf = tsfo !== undefined && Array.isArray(tsfo) ? parseTestSteps(tsfo, 'TEST-TEARDOWN-STEPS') : undefined
+                        if (tsf?.length) { steps.push(...tsf) }
+                    }
                     return testC
                 } else {
                     console.warn(`parseTestCase: ignored due to missing/wrong VERDICT!`)
@@ -467,11 +535,139 @@ const parseTestCase = (testCase: JSONObject[]): AtxTestCase | undefined => {
     return undefined
 }
 
+const parseTestSteps = (folder: JSONValue[], shortName: string): AtxTestStepFolder[] => {
+    if (folder === undefined) { return [] }
+    const res: AtxTestStepFolder[] = []
+    if (typeof folder !== 'object' && !Array.isArray(folder)) {
+        console.warn(`parseTestSteps: ignored dues to unexpected type '${typeof folder}'`, folder)
+    } else { // is Array
+        if (folder.length === 0) {
+            // console.warn(`parseTestSteps: ignored due to len=0/empty`, folder)
+        } else {
+            const steps: AtxTestStepFolder[] = []
+            for (const f of folder) {
+                if (typeof f === 'object') {
+                    for (const [key, value] of Object.entries(f)) {
+                        switch (key) {
+                            case 'TEST-STEP-FOLDER': {
+                                const st = parseTestStepFolders(value)
+                                for (const s of st) { steps.push(s) }
+                            }
+                                break;
+                            case 'TEST-STEP': {
+                                const st = parseTestStep(value)
+                                if (st) { steps.push(st) }
+                            }
+                                break;
+                            default:
+                                console.warn(`parseTestSteps unknown key '${key}'`, value)
+                        }
                     }
-                    res.push(testCase)
+                } else {
+                    console.warn(`parseTestSteps: ignored due to wrong type '${typeof f}' f=`, f)
                 }
+            }
+            if (steps.length > 0) {
+                res.push({
+                    shortName: shortName,
+                    steps: steps
+                })
+            } else {
+                console.warn(`parseTestSteps(${shortName}): ignored due to no steps!`)
             }
         }
     }
     return res
+}
+
+const getLongName = (elem: JSONValue): string | undefined => {
+    const lelem = getFirstMember(elem, 'LONG-NAME')
+    if (Array.isArray(lelem)) {
+        for (const lel of lelem) {
+            for (const [key, value] of Object.entries(lel)) {
+                switch (key) {
+                    case 'L-4': return getInnerText(value)
+                    default:
+                        console.warn(`getLongName unknown key '${key}'`, value)
+                }
+            }
+        }
+    }
+    console.warn(`getLongName returning undefined!`, lelem)
+    return undefined
+}
+
+const parseTestStepFolders = (folder: JSONValue): AtxTestStepFolder[] => {
+    const folders: AtxTestStepFolder[] = []
+    if (!folder || typeof folder !== 'object' || !Array.isArray(folder)) {
+        console.warn(`parseTestStepFolder ignored due to wrong type '${typeof folder}'`, folder)
+    } else {
+        const shortName = getText(folder, 'SHORT-NAME')
+        if (typeof shortName === 'string') {
+            const longName = getLongName(folder)
+            const verdR = getFirstMember(folder, 'VERDICT-RESULT')
+            const verdict = verdR && Array.isArray(verdR) ? getText(verdR, 'VERDICT') : undefined
+            // but now we iterate over all elems to keep test-step and test-step-folder in proper order:
+            const steps: AtxTestStepFolder[] = []
+            for (const f of folder) {
+                for (const [key, value] of Object.entries(f)) {
+                    switch (key) {
+                        case 'TEST-STEP':
+                            {
+                                const st = parseTestStep(value)
+                                if (st) { steps.push(st) }
+                            }
+                            break;
+                        case 'TEST-STEP-FOLDER':
+                            {
+                                const st = parseTestStepFolders(value)
+                                for (const s of st) { steps.push(s) }
+                            } break;
+                        case 'VERDICT-DEFINITION': break;
+                        case 'SHORT-NAME':
+                        case 'VERDICT-RESULT':
+                        case 'LONG-NAME': break;
+                        default:
+                            console.warn(`parseTestStepFolder unknown key '${key}'`, value, f)
+                            break;
+                    }
+                }
+            }
+            folders.push({
+                shortName,
+                longName,
+                verdict,
+                steps,
+            })
+        } else {
+            console.warn(`parseTestStepFolder: ignored f due to wrong shortName '${typeof shortName}'`, shortName)
+        }
+        if (folders.length === 0) {
+            console.warn(`parseTestStepFolder: ignored due to no folders!`, folder)
+        }
+    }
+    return folders
+}
+
+const parseTestStep = (step: JSONValue): AtxTestStepFolder | undefined => {
+    if (!step || !Array.isArray(step)) {
+        console.warn(`parseTestStep ignored due to wrong type '${typeof step}'`, step)
+    } else {
+        const shortName = getText(step, 'SHORT-NAME')
+        const longName = getLongName(step)
+        const verdR = getFirstMember(step, 'VERDICT-RESULT')
+        const verdict = verdR && Array.isArray(verdR) ? getText(verdR, 'VERDICT') : undefined
+        if (getFirstMember(step, 'TEST-STEP-FOLDER') || getFirstMember(step, 'TEST-STEP')) {
+            console.warn(`parseTestStep with TEST-STEP-FOLDER!`)
+        }
+        if (typeof shortName === 'string') {
+            return {
+                shortName,
+                longName,
+                verdict: typeof verdict === 'string' ? verdict : undefined,
+                steps: []
+            }
+        }
+    }
+    return undefined
 }

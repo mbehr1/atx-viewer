@@ -12,8 +12,9 @@ ChartJS.register(ArcElement, Tooltip, Legend, Title);
 import './App.css'
 import { XMLParser } from 'fast-xml-parser'
 import { AtxExecOverview } from './AtxExecOverview';
+import { AtxTCsList } from './AtxTCsList';
 import Dropzone, { FileRejection } from 'react-dropzone';
-import { AtxTestReport, atxReportParse, getReportTestName } from './atxReportParser';
+import { AtxTestCase, AtxTestReport, atxReportParse, getReportTestName } from './atxReportParser';
 
 type JSONValue = | string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
 export type JSONObject = { [x: string]: JSONValue };
@@ -29,6 +30,7 @@ const includesFile = (a: File[], b: File): boolean => {
 function App() {
   const [files, setFiles] = useState<File[]>([])
   const [testReports, setTestReports] = useState<AtxTestReport[]>([])
+  const [showDetailTCs, setShowDetailTCs] = useState<AtxTestCase[]>([])
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[],) => {
     try {
@@ -82,8 +84,8 @@ function App() {
       .then(reports => { if (reports) setTestReports(reports) })
   }, [files])
 
-  const execOverviewTotal = <div className='testSummaryContainer' key={'AtxExecOverview#Total'}><div className='testSummaryItem' ></div><div className='testSummaryItem'>{<AtxExecOverview reports={testReports} />}</div> <div className='testSummaryItem'></div></div>;
-  const execOverviews = testReports.map((report, idx) => <AtxExecOverview key={'AtxExecOverview#' + idx} reports={[report]} />);
+  const execOverviewTotal = <div className='testSummaryContainer' key={'AtxExecOverview#Total'}><div className='testSummaryItem' ></div><div className='testSummaryItem'>{<AtxExecOverview onDetails={(tcs) => setShowDetailTCs(tcs)} reports={testReports} />}</div> <div className='testSummaryItem'></div></div>;
+  const execOverviews = testReports.map((report, idx) => <AtxExecOverview key={'AtxExecOverview#' + idx} reports={[report]} onDetails={(tcs) => setShowDetailTCs(tcs)} />);
 
   return (
     <>
@@ -108,6 +110,9 @@ function App() {
             {execOverviews}
           </div>)}
       </div>
+      {showDetailTCs.length > 0 && <div className='card'>
+        <AtxTCsList tcs={showDetailTCs} />
+      </div>}
       {false && files.length > 0 &&
         files.map((f: File) => (typeof f.name === 'string' ? f.name : '')).join(',') || ''}
       {testReports.length > 0 && <ol>
