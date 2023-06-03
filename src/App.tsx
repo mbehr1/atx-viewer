@@ -49,15 +49,14 @@ function App() {
 
   // load/open the files as json
   useEffect(() => {
-    const parser = new XMLParser({ isArray: (name) => ['PLANNED-TEST-CASES', 'PLANNED-TEST-CASE', 'PLANNED-TEST-CASE-FOLDER', 'DOC-REVISIONS', 'TEST-CASE-FOLDER', 'TEST-CASES', 'TEST-CASE', 'AR-PACKAGE', 'AR-PACKAGES'].includes(name) });
+    const parser = new XMLParser({ preserveOrder: true });
     Promise.all(files.map(file => {
       const text = file.text();
       return text
     })).then(fileTexts => fileTexts.map(fileContent => {
       // todo optimize by not parsing again existing files.
       try {
-        const jsonDoc = parser.parse(fileContent);
-        // console.log(`got jsonDoc: '${Object.keys(jsonDoc).join(',')}'`)
+        const jsonDoc = parser.parse(fileContent); // now only arrays
         // try to parse with as AtxTestReport:
         const reports = atxReportParse(jsonDoc)
         return reports

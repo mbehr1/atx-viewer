@@ -118,6 +118,92 @@ export function* getTestCases(folder: AtxTestCaseFolder): IterableIterator<AtxTe
 }
 
 /**
+ * get a "member" that is expected to be just once in the array
+ * @param a - array
+ * @param member
+ * @returns member or undefined
+ */
+const getFirstMember = (a: JSONValue, member: string): JSONValue | undefined => {
+    if (a && Array.isArray(a)) {
+        for (const m of a) {
+            if (typeof m === 'object' && !Array.isArray(m) && member in m) {
+                return m[member]
+            }
+        }
+    } else {
+        console.error(`getFirstMember(${member}) called on non array!`, a)
+    }
+    return undefined
+}
+
+/**
+ * get an array of all members with a specific name
+ * @param a 
+ * @param member 
+ * @returns 
+ */
+const getAllMember = (a: JSONValue, member: string): JSONValue[] => {
+    const members: JSONValue[] = []
+    if (a && Array.isArray(a)) {
+        for (const m of a) {
+            if (typeof m === 'object' && !Array.isArray(m) && member in m) {
+                members.push(m[member])
+            }
+        }
+    } else {
+        console.error(`getAllMember(${member}) called on non array!`, a)
+    }
+    return members
+}
+
+/**
+ * get the text element as string. can be a number as well that gets converted
+ * @param a 
+ * @param member 
+ * @returns text from #text member
+ */
+const getText = (a: JSONValue, member: string): string | undefined => {
+    if (a) {
+        if (Array.isArray(a)) {
+            for (const m of a) {
+                if (typeof m === 'object' && !Array.isArray(m) && member in m) {
+                    const val = m[member]
+                    if (Array.isArray(val) && val.length === 1 && typeof val[0] === 'object' && '#text' in val[0]) {
+                        const t = val[0]['#text']
+                        if (typeof t === 'string') {
+                            return t
+                        } else if (typeof t === 'number') {
+                            return t.toString()
+                        }
+                    }
+                    console.warn(`getText(${member}) wrong type`, m)
+                }
+            }
+        } else {
+            if (typeof a === 'object') {
+                if (member in a) {
+                    const val = a[member]
+                    if (Array.isArray(val) && val.length === 1 && typeof val[0] === 'object' && '#text' in val[0]) {
+                        const t = val[0]['#text']
+                        if (typeof t === 'string') {
+                            return t
+                        } else if (typeof t === 'number') {
+                            return t.toString()
+                        }
+                    }
+                    console.warn(`getText(${member}) wrong type`, a)
+                }
+            } else {
+                console.error(`getText(${member}) called on wrong type '${typeof a}'`, a)
+            }
+        }
+    } else {
+        console.error(`getText(${member}) called on nullish`, a)
+    }
+    return undefined
+}
+
+/**
  * Parse an JSON object into the structured AtxTestReport types.
  * @param atx json object parsed from the xml file via fast-xml-parser... (todo describe mandatory options)
  * @returns the contained test reports if the `atx` doesn't contain any ATX/AR-PACKAGES/AR-PACKAGE/ELEMENTS/TEST-SPEC
@@ -126,15 +212,19 @@ export function* getTestCases(folder: AtxTestCaseFolder): IterableIterator<AtxTe
 export const atxReportParse = (atx: JSONObject): AtxTestReport[] => {
     const res: AtxTestReport[] = [];
     try {
-        const tss = getTestSpecObjs(atx);
+        if (!(atx && typeof atx === 'object' && Array.isArray(atx))) {
+            console.error(`atxReportParse ignored due to no array!`, atx)
+            return []
+        }
+        const tss = getTestSpecObjs(atx as JSONValue[]);
         for (const [testPlan, ts] of tss) {
             // mandatory members:
-            const shortName = ts['SHORT-NAME'];
+            const shortName = getText(ts, 'SHORT-NAME') //  ts['SHORT-NAME'];
             if (typeof shortName !== 'string') {
                 console.warn(`atxReportParse skipped report due to wrong SHORT-NAME: ${JSON.stringify(shortName)}`);
                 break;
             }
-            const tcs = ts['TEST-CASES'];
+            const tcs = getFirstMember(ts, 'TEST-CASES');
             if (tcs && typeof tcs === 'object' && Array.isArray(tcs)) {
                 const root: AtxTestCaseFolder = {
                     shortName: '', // or /?
@@ -142,14 +232,14 @@ export const atxReportParse = (atx: JSONObject): AtxTestReport[] => {
                 }
 
                 // now test plan:
-                if (testPlan && typeof testPlan === 'object' && !Array.isArray(testPlan)) {
-                    const planShortName = testPlan['SHORT-NAME']
+                if (testPlan && Array.isArray(testPlan)) {
+                    const planShortName = getText(testPlan, 'SHORT-NAME')
                     if (typeof planShortName !== 'string') {
                         console.warn(`atxReportParse skipped report due to wrong plan SHORT-NAME: ${JSON.stringify(planShortName)}`);
                         break;
                     }
-                    const ptcs = testPlan['PLANNED-TEST-CASES']
-                    if (ptcs && typeof ptcs === 'object' && Array.isArray(ptcs)) {
+                    const ptcs = getFirstMember(testPlan, 'PLANNED-TEST-CASES')
+                    if (ptcs && Array.isArray(ptcs)) {
                         const plan: AtxPlannedTestCaseFolder = {
                             shortName: planShortName,
                             plannedTestCases: parsePlannedTestCases(ptcs),
@@ -182,28 +272,31 @@ export const atxReportParse = (atx: JSONObject): AtxTestReport[] => {
  * @param atxOrPkg 
  * @returns an array of pairs of test plans and test reports
  */
-const getTestSpecObjs = (atxOrPkg: JSONObject): [JSONObject, JSONObject][] => {
-    const res: JSONObject[] = [];
-    const plans: JSONObject[] = [];
+const getTestSpecObjs = (atxOrPkg: JSONValue[]): [JSONValue, JSONValue][] => {
+    const res: JSONValue[] = [];
+    const plans: JSONValue[] = [];
     try {
-        const atx = 'ATX' in atxOrPkg ? atxOrPkg.ATX : atxOrPkg;
-        if (atx && typeof atx === 'object' && !Array.isArray(atx)) {
-            if ('AR-PACKAGES' in atx) {
-                const arPkg = atx['AR-PACKAGES'] as JSONObject[];
-                const arPkgs = arPkg[0]['AR-PACKAGE']; // this is the array
+
+        const atx = getFirstMember(atxOrPkg, 'ATX')
+        if (atx && typeof atx === 'object' && Array.isArray(atx)) {
+            const arPackages = getAllMember(atx, 'AR-PACKAGES')
+            for (const arPkg of arPackages) {
+                if (Array.isArray(arPkg)) {
+                    const arPkgs = getAllMember(arPkg, 'AR-PACKAGE')
                 if (Array.isArray(arPkgs)) {
                     for (const pkg of arPkgs) {
-                        if (typeof pkg === 'object' && !Array.isArray(pkg)) {
-                            const elem = pkg['ELEMENTS'] as JSONObject;
-                            if (typeof elem === 'object') {
-                                if ('TEST-SPEC' in elem) {
-                                    const ts = elem['TEST-SPEC'] as JSONObject;
-                                    if (ts.CATEGORY === 'ATX_TEST_REPORT') {
-                                        res.push(ts)
+                        if (Array.isArray(pkg)) {
+                            const elem = getFirstMember(pkg, 'ELEMENTS')
+                            if (Array.isArray(elem)) {
+                                const ts = getAllMember(elem, 'TEST-SPEC')
+                                for (const spec of ts) {
+                                    if (Array.isArray(spec) && getText(spec, 'CATEGORY') === 'ATX_TEST_REPORT') {
+                                        res.push(spec)
                                     }
                                 }
-                                if ('TEST-EXECUTION-PLAN' in elem) {
-                                    plans.push(elem['TEST-EXECUTION-PLAN'] as JSONObject)
+                                for (const plan of getAllMember(elem, 'TEST-EXECUTION-PLAN')) {
+                                    plans.push(plan)
+                                }
                                 }
                             }
                         }
@@ -215,16 +308,16 @@ const getTestSpecObjs = (atxOrPkg: JSONObject): [JSONObject, JSONObject][] => {
         console.warn(`getTestSpecObjs got err:${e}`)
     }
     //if (res.length > 1) { console.warn(`getTestSpecObjs returned unexpected length ${res.length}!=1`) }
-    if (res.length !== plans.length) { console.warn(`getTestSpecObjs unexpected spec vs plans ${res.length} vs ${plans.length}`) }
+    if (res.length !== plans.length) { console.warn(`getTestSpecObjs unexpected spec vs plans ${res.length} vs ${plans.length}`, res, plans) }
     return plans.map((p, idx) => [p, res[idx]])
 }
 
-const getTestReportDate = (ts: JSONObject): Date | undefined => {
+const getTestReportDate = (ts: JSONValue): Date | undefined => {
     try {
-        const adminData = ts['ADMIN-DATA']
-        const docRevs = adminData && typeof adminData === 'object' && !Array.isArray(adminData) && adminData['DOC-REVISIONS'];
-        const docRev = docRevs && Array.isArray(docRevs) && docRevs.length > 0 && (docRevs[0] as JSONObject)['DOC-REVISION'];
-        const docDate = docRev && typeof docRev === 'object' && !Array.isArray(docRev) && docRev.DATE;
+        const adminData = getFirstMember(ts, 'ADMIN-DATA')
+        const docRevs = adminData && typeof adminData === 'object' && Array.isArray(adminData) ? getFirstMember(adminData, 'DOC-REVISIONS') : undefined
+        const docRev = docRevs && Array.isArray(docRevs) && docRevs.length > 0 ? getFirstMember(docRevs, 'DOC-REVISION') : undefined
+        const docDate = docRev && Array.isArray(docRev) ? getText(docRev, 'DATE') : undefined
         //console.log(`getTestReportDate=`, docDate);
         return docDate && typeof docDate === 'string' ? new Date(docDate) : undefined;
     } catch (e) {
@@ -261,11 +354,10 @@ const parsePlannedTestCases = (testCases: JSONValue[]): (AtxPlannedTestCase | At
 const parsePlannedTestCaseFolder = (folder: JSONObject[]): AtxPlannedTestCaseFolder[] => {
     const res: AtxPlannedTestCaseFolder[] = [];
     try {
-        for (const folderContent of folder) {
+        if (Array.isArray(folder)) {
             // console.log(`parsePlannedTestCaseFolder(${folderContent['SHORT-NAME']})...'`, Object.keys(folderContent));
-            if (typeof folderContent === 'object') {
-                const shortName = folderContent['SHORT-NAME']
-                const testCases = folderContent['PLANNED-TEST-CASES']
+            const shortName = getText(folder, 'SHORT-NAME')
+            const testCases = getFirstMember(folder, 'PLANNED-TEST-CASES')
                 if (testCases && Array.isArray(testCases)) {
                     if (shortName && typeof shortName === 'string') {
                         const f: AtxPlannedTestCaseFolder = {
@@ -278,7 +370,6 @@ const parsePlannedTestCaseFolder = (folder: JSONObject[]): AtxPlannedTestCaseFol
                     console.warn(`parsePlannedTestCaseFolder ignoring folder ${JSON.stringify(shortName)} due to wrong TEST-CASES ${JSON.stringify(testCases)}`)
                 }
             }
-        }
     } catch (e) {
         console.warn(`parsePlannedTestCaseFolder got err=${e}`)
     }
@@ -297,7 +388,7 @@ const parseTestCases = (testCases: JSONValue[]): (AtxTestCase | AtxTestCaseFolde
                             if (f.length) { res.push(...f) }
                         } break;
                         case 'TEST-CASE': {
-                            const t = parseTestCase(value as JSONObject[]); if (t.length) { res.push(...t) }
+                            const t = parseTestCase(value as JSONObject[]); if (t) { res.push(t) }
                         }
                             break;
                         default:
@@ -305,6 +396,8 @@ const parseTestCases = (testCases: JSONValue[]): (AtxTestCase | AtxTestCaseFolde
                             break;
                     }
                 }
+            } else {
+                console.warn(`parseTestCases wrong type`, tc)
             }
         }
     } else {
@@ -316,11 +409,9 @@ const parseTestCases = (testCases: JSONValue[]): (AtxTestCase | AtxTestCaseFolde
 const parseTestCaseFolder = (folder: JSONObject[]): AtxTestCaseFolder[] => {
     const res: AtxTestCaseFolder[] = [];
     try {
-        for (const folderContent of folder) {
-            //console.log(`parseTestCaseFolder(${folderContent['SHORT-NAME']})...'`, Object.keys(folderContent));
-            if (typeof folderContent === 'object') {
-                const shortName = folderContent['SHORT-NAME']
-                const testCases = folderContent['TEST-CASES']
+        if (Array.isArray(folder)) {
+            const shortName = getText(folder, 'SHORT-NAME')
+            const testCases = getFirstMember(folder, 'TEST-CASES')
                 if (testCases && Array.isArray(testCases)) {
                     if (shortName && typeof shortName === 'string') {
                         const f: AtxTestCaseFolder = {
@@ -333,26 +424,49 @@ const parseTestCaseFolder = (folder: JSONObject[]): AtxTestCaseFolder[] => {
                     console.warn(`parseTestCaseFolder ignoring folder ${JSON.stringify(shortName)} due to wrong TEST-CASES ${JSON.stringify(testCases)}`)
                 }
             }
-        }
     } catch (e) {
         console.warn(`parseTestCaseFolder got err=${e}`)
     }
     return res
 }
-const parseTestCase = (testCase: JSONObject[]): AtxTestCase[] => {
-    const res: AtxTestCase[] = [];
-    //console.log(`parseTestCase(#${testCase.length})`);
-    for (const tc of testCase) {
-        const shortName = tc['SHORT-NAME']
-        if (shortName && typeof shortName === 'string') {
-            const verdR = tc['VERDICT-RESULT'];
-            if (verdR && typeof verdR === 'object' && !Array.isArray(verdR)) {
-                const verdict = verdR['VERDICT'];
-                if (typeof verdict === 'string') {
-                    const testCase: AtxTestCase = {
+
+const parseTestCase = (testCase: JSONObject[]): AtxTestCase | undefined => {
+    if (Array.isArray(testCase)) {
+        const shortName = getText(testCase, 'SHORT-NAME')
+        if (shortName) {
+            const verdR = getFirstMember(testCase, 'VERDICT-RESULT')
+            if (verdR && typeof verdR === 'object' && Array.isArray(verdR)) {
+                const verdict = getText(verdR, 'VERDICT')
+                if (verdict) {
+                    const steps: AtxTestStepFolder[] = []
+                    const execTime = getText(testCase, 'EXECUTION-TIME')
+
+                    const testC: AtxTestCase = {
                         shortName,
-                        executionTimeInSec: 'EXECUTION-TIME' in tc ? Number(tc['EXECUTION-TIME']) : undefined,
+                        executionTimeInSec: execTime ? Number(execTime) : undefined,
                         verdict,
+                        steps,
+                    }
+                    // fill steps, we do this afterwards as we ignore failures anyhow:
+                    //const tsfo = tc['TEST-EXECUTION-STEPS']
+                    //const tsf = tsfo !== undefined && typeof tsfo === 'object' && Array.isArray(tsfo) ? parseTestSteps(tsfo, `TEST-EXECUTION-STEPS`) : undefined
+                    //if (tsf) { steps.push(tsf) }
+                    return testC
+                } else {
+                    console.warn(`parseTestCase: ignored due to missing/wrong VERDICT!`)
+                }
+            } else {
+                console.warn(`parseTestCase: ignored due to missing/wrong VERDICT-RESULT!`)
+            }
+        } else {
+            console.warn(`parseTestCase: ignored due to no shortName`)
+        }
+    } else {
+        console.warn(`parseTestCase: ignored due to !Array`)
+    }
+    return undefined
+}
+
                     }
                     res.push(testCase)
                 }
