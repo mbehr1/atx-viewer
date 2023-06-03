@@ -62,6 +62,7 @@ export const mapVerdictToColor = (verdict: string | undefined): string => {
         case 'PASSED': return 'green'
         case 'FAILED':
         case 'ERROR': return 'red'
+        case 'INCONCLUSIVE': return 'yellow'
         case 'NONE': return 'white'
     }
     return 'grey'
@@ -85,6 +86,7 @@ export const getVerdictForFolder = (folder: AtxTestStepFolder): string | undefin
         }
         if (verdicts.ERROR) return 'ERROR';
         if (verdicts.FAILED) return 'FAILED';
+        if (verdicts.INCONCLUSIVE) return 'INCONCLUSIVE';
         if (verdicts.PASSED) return 'PASSED';
         if (verdicts.NONE) return 'NONE';
     }
@@ -106,6 +108,7 @@ export interface AtxPlannedTestCase {
 export interface SummaryStats {
     passed: number,
     failed: number,
+    inconclusive: number,
     skipped: number,
     none: number,
     totalExecutionTime: number,
@@ -115,6 +118,7 @@ export const getFolderStats = (folder: AtxTestCaseFolder): SummaryStats => {
     const stats = {
         passed: 0,
         failed: 0,
+        inconclusive: 0,
         skipped: 0,
         none: 0,
         totalExecutionTime: 0,
@@ -128,6 +132,7 @@ export const getFolderStats = (folder: AtxTestCaseFolder): SummaryStats => {
                 case 'PASSED': stats.passed += 1; break;
                 case 'ERROR': // fallthrough
                 case 'FAILED': stats.failed += 1; break;
+                case 'INCONCLUSIVE': stats.inconclusive += 1; break;
                 case 'NONE': stats.none += 1; break;
                 default:
                     console.log(`AtxExecOverview.processTestCases unknown verdict:'${tc.verdict}'`);
@@ -138,6 +143,7 @@ export const getFolderStats = (folder: AtxTestCaseFolder): SummaryStats => {
             const fStats = getFolderStats(tcFolder)
             stats.passed += fStats.passed
             stats.failed += fStats.failed
+            stats.inconclusive += fStats.inconclusive
             stats.skipped += fStats.skipped
             stats.none += fStats.none
             stats.totalExecutionTime += fStats.totalExecutionTime

@@ -16,16 +16,17 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
     const { reports, onDetails } = props;
 
     // get basic data from atx:
-    const [summaryStats, setSummaryStats] = useState<SummaryStats>({ passed: 0, failed: 0, skipped: 1, none: 0, totalExecutionTime: 0 });
+    const [summaryStats, setSummaryStats] = useState<SummaryStats>({ passed: 0, failed: 0, inconclusive: 0, skipped: 1, none: 0, totalExecutionTime: 0 });
 
     useEffect(() => {
-        const sumStats: SummaryStats = { passed: 0, failed: 0, skipped: 0, none: 0, totalExecutionTime: 0 };
+        const sumStats: SummaryStats = { passed: 0, failed: 0, inconclusive: 0, skipped: 0, none: 0, totalExecutionTime: 0 };
 
         // determine summary stats:
         for (const report of reports) {
             const stat = getFolderStats(report.root)
             sumStats.passed += stat.passed
             sumStats.failed += stat.failed
+            sumStats.inconclusive += stat.inconclusive
             sumStats.skipped += stat.skipped
             sumStats.none += stat.none
             sumStats.totalExecutionTime += stat.totalExecutionTime
@@ -71,8 +72,9 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                                     switch (index) {
                                         case 0: filterVerdict = /^PASSED/; break;
                                         case 1: filterVerdict = /^FAILED|^ERROR/; break;
-                                        case 2: filterVerdict = /^SKIPPED/; break;
-                                        case 3:
+                                        case 2: filterVerdict = /^INCONCLUSIVE/; break;
+                                        case 3: filterVerdict = /^SKIPPED/; break;
+                                        case 4:
                                         default:
                                             filterVerdict = /^NONE/; break;
                                     }
@@ -129,8 +131,9 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                                     switch (ctx.dataIndex) {
                                         case 0: label += ' passed'; break;
                                         case 1: label += ' failed'; break;
-                                        case 2: label += ' skipped'; break;
-                                        case 3: label += ' verdict none'; break;
+                                        case 2: label += ' inconclusive'; break;
+                                        case 3: label += ' skipped'; break;
+                                        case 4: label += ' verdict none'; break;
                                     }
                                     return label
                                 }
@@ -144,6 +147,7 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                                 return [
                                     summaryStats.passed > 0 ? { text: 'passed', fillStyle: 'green' } : undefined,
                                     summaryStats.failed > 0 ? { text: 'failed', fillStyle: 'red' } : undefined,
+                                    summaryStats.inconclusive > 0 ? { text: 'inconclusive', fillStyle: 'yellow' } : undefined,
                                     summaryStats.skipped > 0 ? { text: 'skipped', fillStyle: 'grey' } : undefined,
                                     summaryStats.none > 0 ? { text: 'none', fillStyle: 'white' } : undefined,
                                 ].filter(f => f !== undefined) as LegendItem[]
@@ -152,12 +156,12 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                     }
                 }
             }} data={{
-                // labels: ['passed', 'failed', 'skipped', 'none'], using generateLabels to assign proper color
+                // labels: ['passed', 'failed', 'skipped','inconclusive', 'none'], using generateLabels to assign proper color
                 datasets: [detailedDataset,
                     {
                         label: 'Total',
-                        data: [summaryStats.passed, summaryStats.failed, summaryStats.skipped, summaryStats.none],
-                        backgroundColor: ['green', 'red', 'grey', 'white']
+                        data: [summaryStats.passed, summaryStats.failed, summaryStats.inconclusive, summaryStats.skipped, summaryStats.none],
+                        backgroundColor: [mapVerdictToColor('PASSED'), mapVerdictToColor('FAILED'), mapVerdictToColor('INCONCLUSIVE'), mapVerdictToColor('SKIPPED'), mapVerdictToColor('NONE')]
                     },
                 ]
             }} />
