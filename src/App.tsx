@@ -145,6 +145,7 @@ function App() {
         {testReports.map((a, idx) => <li key={'' + idx} >{a.shortName}:{getReportTestName(a)}</li>)}
         </ol>
       </div>}
+      <div className='gitSha'>build from <a href="https://github.com/mbehr1/atx-viewer" target="_blank">github/mbehr1/atx-viewer</a> commit #{__COMMIT_HASH__}</div>
     </>
   )
 }

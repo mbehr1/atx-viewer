@@ -55,3 +55,10 @@
 .read-the-docs {
   color: #888;
 }
+
+.gitSha,
+.gitSha a {
+  font-size: xx-small;
+  text-align: right;
+  color: dimgrey;
+}
