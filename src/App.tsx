@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 
 import { Chart as ChartJS, ArcElement, Title, Tooltip, Legend } from 'chart.js'
 import { fromEvent } from 'file-selector';
+import { Buffer } from 'node:buffer'
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
@@ -15,6 +16,7 @@ import { AtxExecOverview } from './AtxExecOverview';
 import { AtxTCsList } from './AtxTCsList';
 import Dropzone, { FileRejection } from 'react-dropzone';
 import { AtxTestCase, AtxTestReport, atxReportParse, getReportTestName } from './atxReportParser';
+import AdmZip from 'adm-zip';
 
 type JSONValue = | string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
 export type JSONObject = { [x: string]: JSONValue };
@@ -32,18 +34,41 @@ function App() {
   const [testReports, setTestReports] = useState<AtxTestReport[]>([])
   const [showDetailTCs, setShowDetailTCs] = useState<AtxTestCase[]>([])
 
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[],) => {
+  const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: FileRejection[],) => {
     try {
       //const length = event.dataTransfer.files.length;
       console.log(`onDrop acceptedFile length=${acceptedFiles.length} rejectedFiles: ${rejectedFiles.length}`);
       const posXmlFiles = acceptedFiles.filter((f) => { const lowName = f.name.toLowerCase(); return lowName.endsWith('.xml') || lowName.endsWith('.atxml') })
-      //for (const file of posXmlFiles) {
-      //console.log(` dropped file:${file.name} ${file.type}`, file);
-      //}
-      setFiles(d => {
-        const nonDuplFiles = posXmlFiles.filter(f => !includesFile(d, f));
-        return d.concat(nonDuplFiles)
-      });
+      // we do only check for zip files if no xml file was dropped already
+      const zipFiles = posXmlFiles.length === 0 ? acceptedFiles.filter((f) => { const lowName = f.name.toLowerCase(); return lowName.endsWith('.zip') || lowName.endsWith('.7z') }) : []
+      for (const file of zipFiles) {
+        console.log(` dropped zip file:${file.name} ${file.type} size=${file.size}`, file)
+        const fileBuf = await file.arrayBuffer()
+        console.log(` dropped zip file:${file.name} size=${file.size} got fileBuf ${fileBuf.byteLength}`)
+        const zip = new AdmZip(Buffer.from(fileBuf), { noSort: true })
+        console.log(` dropped zip file:${file.name} has ${zip.getEntryCount()} entries.`)
+        const xmlFilesFromZip = zip.getEntries().filter((e) => {
+          const lowName = e.entryName.toLowerCase();
+          return lowName.endsWith('.xml') || lowName.endsWith('.atxml')
+        })
+        console.log(` dropped zip file:${file.name} has ${xmlFilesFromZip.length} xml entries`)
+        // unzip those:
+        const xmlFilesFromZipAsFiles = xmlFilesFromZip.map((f) => {
+          const bits = f.getData()
+          return new File([bits], f.entryName, { type: "text/xml", lastModified: f.header.time.valueOf() })
+        })
+        console.log(` dropped zip file:${file.name} extracted ${xmlFilesFromZipAsFiles.length} xml entries`, xmlFilesFromZipAsFiles)
+        setFiles(d => {
+          const nonDuplFiles = xmlFilesFromZipAsFiles.filter(f => !includesFile(d, f));
+          return d.concat(nonDuplFiles)
+        })
+      }
+      if (posXmlFiles.length > 0) {
+        setFiles(d => {
+          const nonDuplFiles = posXmlFiles.filter(f => !includesFile(d, f));
+          return d.concat(nonDuplFiles)
+        });
+      }
     } catch (err) {
       console.error(`onDrop got err=${err}`);
     }

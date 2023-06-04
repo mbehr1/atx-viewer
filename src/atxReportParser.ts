@@ -3,6 +3,7 @@
  * [ ] TEST-CASE-ATTRIBUTES support (e.g. show SDGs in table)
  * [ ] TEST-STEP/TEST-STEP-FOLDER.EXPECTED-RESULT support
  * [?] TEST-CASE proper name from test-plan not from test-execution (added originRef but staying at the shortName for now)
+ * [ ] add support for test artifacts (ARGUMENT-LIST)
 */
 
 
