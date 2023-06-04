@@ -118,7 +118,7 @@ function App() {
       <Dropzone onDrop={onDrop} getFilesFromEvent={fromEvent}>
         {({ getRootProps, getInputProps }) => (
           <section>
-            <div {...getRootProps()}>
+            <div {...getRootProps({ className: 'dropZone' })}>
               <input {...getInputProps()} />
               <p>Drag 'n' drop files here, or click to select files</p>
             </div>
