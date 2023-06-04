@@ -28,8 +28,16 @@ const TCNode = (props: TCNodeProps) => {
         return firstLine.length > 120 ? firstLine.slice(0, 95) + '... <click to show more>' : firstLine
     }, [tc.desc])
 
-    return (<div onClick={(e) => { if (tc.steps.length > 0) { setShowSteps(v => !v); } e.preventDefault(); e.stopPropagation() }} className="tc" style={{ borderLeft: `1px solid ${borderColor}` }}>
-        <div>{`${tc.longName || tc.shortName}${tc.executionTimeInSec !== undefined ? `, duration ${tc.executionTimeInSec}s` : ''}`}</div>
+    return (
+        <div
+            onClick={(e) => {
+                if (tc.steps.length > 0) { setShowSteps(v => !v); }
+                e.preventDefault()
+                e.stopPropagation()
+            }}
+            className="tc" style={{ borderLeft: `1px solid ${borderColor}` }}>
+            <div>{`${tc.longName || tc.shortName}${tc.executionTimeInSec !== undefined ? `, duration ${tc.executionTimeInSec}s` : ''}${tc.date !== undefined ? ` at ${tc.date.toLocaleString()}` : ''}`}</div>
+            {tc.originRef && showSteps && <div>{tc.originRef}</div>}
         {tc.desc && showSteps && (showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{tc.desc}</pre>}
         {tc.desc && showSteps && !(showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{descFirstLine}</pre>}
         <ul style={{ paddingLeft: "10px", borderLeft: `1px solid ${borderColor}` }}>

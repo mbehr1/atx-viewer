@@ -2,7 +2,7 @@
  * todo:
  * [ ] TEST-CASE-ATTRIBUTES support (e.g. show SDGs in table)
  * [ ] TEST-STEP/TEST-STEP-FOLDER.EXPECTED-RESULT support
- * [ ] TEST-CASE proper name from test-plan not from test-execution
+ * [?] TEST-CASE proper name from test-plan not from test-execution (added originRef but staying at the shortName for now)
 */
 
 
@@ -30,9 +30,10 @@ export interface AtxTestCase {
     shortName: string,
     longName?: string,
     desc?: string,
-    // todo add executedAtDate?
+    date?: Date,
     executionTimeInSec?: number,
     verdict: string, // one of PASSED, FAILED, NONE, INCONCLUSIVE, ERROR // todo how to handle EVALUATED/AGGREGATED?
+    originRef?: string, // from <ORIGIN-REF DEST="TEST-CASE">...
     steps: AtxTestStepFolder[],
 }
 
@@ -373,7 +374,7 @@ export const atxReportParse = (atx: JSONObject): AtxTestReport[] => {
                         }
                         const report: AtxTestReport = {
                             shortName,
-                            date: getTestReportDate(ts),
+                            date: getElementDate(ts),
                             root,
                             plan
                         }
@@ -439,7 +440,7 @@ const getTestSpecObjs = (atxOrPkg: JSONValue[]): [JSONValue, JSONValue][] => {
     return plans.map((p, idx) => [p, res[idx]])
 }
 
-const getTestReportDate = (ts: JSONValue): Date | undefined => {
+const getElementDate = (ts: JSONValue): Date | undefined => {
     try {
         const adminData = getFirstMember(ts, 'ADMIN-DATA')
         const docRevs = adminData && typeof adminData === 'object' && Array.isArray(adminData) ? getFirstMember(adminData, 'DOC-REVISIONS') : undefined
@@ -568,12 +569,16 @@ const parseTestCase = (testCase: JSONObject[]): AtxTestCase | undefined => {
                     const steps: AtxTestStepFolder[] = []
                     const execTime = getText(testCase, 'EXECUTION-TIME')
                     const desc = getDesc(testCase)
+                    const date = getElementDate(testCase)
+                    const originRef = getText(testCase, 'ORIGIN-REF')
 
                     const testC: AtxTestCase = {
                         shortName,
                         desc,
-                        executionTimeInSec: execTime ? Number(execTime) : undefined,
+                        date,
                         verdict,
+                        executionTimeInSec: execTime ? Number(execTime) : undefined,
+                        originRef,
                         steps,
                     }
                     {
