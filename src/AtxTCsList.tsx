@@ -27,6 +27,8 @@ const TCNode = (props: TCNodeProps) => {
         const firstLine = tc.desc?.split('\n')[0] || '';
         return firstLine.length > 120 ? firstLine.slice(0, 95) + '... <click to show more>' : firstLine
     }, [tc.desc])
+    const tcName = useMemo(() => { return tc.longName || tc.shortName }, [tc])
+    const tcNameAbbrev = useMemo(() => tcName.length > 100 ? tcName.slice(0, 97) + '...' : tcName, [tcName])
 
     return (
         <div
@@ -36,7 +38,7 @@ const TCNode = (props: TCNodeProps) => {
                 e.stopPropagation()
             }}
             className="tc" style={{ borderLeft: `1px solid ${borderColor}` }}>
-            <div>{`${tc.longName || tc.shortName}${tc.executionTimeInSec !== undefined ? `, duration ${tc.executionTimeInSec}s` : ''}${tc.date !== undefined ? ` at ${tc.date.toLocaleString()}` : ''}`}</div>
+            <div title={(tcName.length !== tcNameAbbrev.length) ? tcName : undefined}>{`${tcNameAbbrev}${tc.executionTimeInSec !== undefined ? `, duration ${tc.executionTimeInSec}s` : ''}${tc.date !== undefined ? ` at ${tc.date.toLocaleString()}` : ''}`}</div>
             {tc.originRef && showSteps && <div>{tc.originRef}</div>}
         {tc.desc && showSteps && (showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{tc.desc}</pre>}
         {tc.desc && showSteps && !(showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{descFirstLine}</pre>}
@@ -51,6 +53,8 @@ interface TestStepFolderProps {
 }
 const TestStepFolder = (props: TestStepFolderProps) => {
     const { folder } = props
+    const tsName = useMemo(() => { return folder.longName || folder.shortName }, [folder])
+    const tsNameAbbrev = useMemo(() => tsName.length > 100 ? tsName.slice(0, 97) + '...' : tsName, [tsName])
     const borderColor = useMemo(() => mapVerdictToColor(getVerdictForFolder(folder)), [folder])
     const [showSteps, setShowSteps] = useState(folder.steps.length === 0 || !['green', 'white', 'grey'].includes(borderColor))
 
@@ -64,7 +68,7 @@ const TestStepFolder = (props: TestStepFolderProps) => {
         }}
         className="tcf" style={{ borderLeft: `1px solid ${borderColor}` }}>
         <div>
-            <span>{`${folder.verdict ? folder.verdict + ': ' : ''}${folder.longName || folder.shortName}${showSteps ? '' : `, steps ${folder.steps.length}`}`}</span>
+            <span title={(tsName.length !== tsNameAbbrev.length) ? tsName : undefined}>{`${folder.verdict ? folder.verdict + ': ' : ''}${tsNameAbbrev}${showSteps ? '' : `, steps ${folder.steps.length}`}`}</span>
             {folder.expectedResult && <pre className="tcExpectedResult" >{folder.expectedResult}</pre>}
         </div>
         {showSteps && folder.steps.length > 0 && <ul>
