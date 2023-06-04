@@ -1,9 +1,8 @@
 /** 
  * todo:
  * [ ] TEST-CASE-ATTRIBUTES support (e.g. show SDGs in table)
- * [ ] TEST-STEP/TEST-STEP-FOLDER.EXPECTED-RESULT support
  * [?] TEST-CASE proper name from test-plan not from test-execution (added originRef but staying at the shortName for now)
- * [ ] add support for test artifacts (ARGUMENT-LIST)
+ * [ ] add support for test arguments download (ARGUMENT-LIST)
 */
 
 
@@ -36,6 +35,15 @@ export interface AtxTestCase {
     verdict: string, // one of PASSED, FAILED, NONE, INCONCLUSIVE, ERROR // todo how to handle EVALUATED/AGGREGATED?
     originRef?: string, // from <ORIGIN-REF DEST="TEST-CASE">...
     steps: AtxTestStepFolder[],
+    testArguments: AtxTestCaseArgument[], // ARGUMENT-LIST/ARGUMENTS/TEST-ARGUMENT-ELEMENT...
+}
+
+export interface AtxTestCaseArgument {
+    // todo shortName... (not needed for now?)
+    desc?: string,
+    argType?: string,
+    direction?: string,
+    value: string
 }
 
 export interface AtxTestCaseFolder {
@@ -193,15 +201,27 @@ export function* getTestCases(folder: AtxTestCaseFolder): IterableIterator<AtxTe
  * @param member
  * @returns member or undefined
  */
-const getFirstMember = (a: JSONValue, member: string): JSONValue | undefined => {
-    if (a && Array.isArray(a)) {
-        for (const m of a) {
-            if (typeof m === 'object' && !Array.isArray(m) && member in m) {
-                return m[member]
+const getFirstMember = (a: JSONValue, member: string | string[]): JSONValue | undefined => {
+    if (typeof member === 'string') {
+        if (a && Array.isArray(a)) {
+            for (const m of a) {
+                if (typeof m === 'object' && !Array.isArray(m) && member in m) {
+                    return m[member]
+                }
+            }
+        } else {
+            console.error(`getFirstMember(${member}) called on non array!`, a)
+        }
+    } else { // member is an array, search the full path:
+        let toRet: JSONValue | undefined = undefined
+        for (const memb of member) {
+            toRet = getFirstMember(toRet === undefined ? a : toRet, memb)
+            if (toRet === undefined) {
+                // console.warn(`getFirstMember(${member.join('/')}) didn't found '${memb}'`)
+                return undefined
             }
         }
-    } else {
-        console.error(`getFirstMember(${member}) called on non array!`, a)
+        return toRet
     }
     return undefined
 }
@@ -303,8 +323,9 @@ const getDesc = (elem: JSONValue): string | undefined => {
                 }
             }
         }
+        console.warn(`getDesc returning undefined!`, delem)
     }
-    console.warn(`getDesc returning undefined!`, delem)
+    // no warning here if DESC doesn't exist
     return undefined
 }
 
@@ -455,6 +476,48 @@ const getElementDate = (ts: JSONValue): Date | undefined => {
     return undefined
 }
 
+const getTestArguments = (tc: JSONValue): AtxTestCaseArgument[] => {
+    const res: AtxTestCaseArgument[] = []
+    try {
+        const tArgs = getFirstMember(tc, ['ARGUMENT-LIST', 'ARGUMENTS'])
+        if (Array.isArray(tArgs)) {
+            for (const tArg of tArgs) {
+                if (typeof tArg === 'object') {
+                    for (const [key, value] of Object.entries(tArg)) {
+                        switch (key) {
+                            case 'TEST-ARGUMENT-ELEMENT':
+                                // console.log(`getTestArguments got`, value)
+                                {
+                                    const desc = getDesc(value)
+                                    const direction = getText(value, 'DIRECTION')
+                                    const argType = getText(value, 'TYPE-REF')
+                                    const valueO = getFirstMember(value, ['LITERAL-VALUE', 'TEXT-VALUE-SPECIFICATION'])
+                                    const value2 = Array.isArray(valueO) ? getText(valueO, 'VALUE') : undefined
+                                    if (value2 !== undefined) {
+                                        res.push({
+                                            desc,
+                                            argType,
+                                            direction,
+                                            value: value2
+                                        })
+                                    } else {
+                                        console.warn(`getTestArguments unknown value`, valueO, value)
+                                    }
+                                }
+                                break;
+                            default:
+                                console.warn(`getTestArguments unknown key '${key}'`, value)
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn(`getTestArguments got err=${e}`)
+    }
+    return res
+}
+
 const parsePlannedTestCases = (testCases: JSONValue[]): (AtxPlannedTestCase | AtxPlannedTestCaseFolder)[] => {
     const res: (AtxPlannedTestCase | AtxPlannedTestCaseFolder)[] = []
     if (Array.isArray(testCases)) {
@@ -572,6 +635,7 @@ const parseTestCase = (testCase: JSONObject[]): AtxTestCase | undefined => {
                     const desc = getDesc(testCase)
                     const date = getElementDate(testCase)
                     const originRef = getText(testCase, 'ORIGIN-REF')
+                    const testArguments: AtxTestCaseArgument[] = getTestArguments(testCase)
 
                     const testC: AtxTestCase = {
                         shortName,
@@ -581,6 +645,7 @@ const parseTestCase = (testCase: JSONObject[]): AtxTestCase | undefined => {
                         executionTimeInSec: execTime ? Number(execTime) : undefined,
                         originRef,
                         steps,
+                        testArguments
                     }
                     {
                         const tsfo = getFirstMember(testCase, 'TEST-SETUP-STEPS')

@@ -31,20 +31,32 @@ const TCNode = (props: TCNodeProps) => {
     const tcNameAbbrev = useMemo(() => tcName.length > 100 ? tcName.slice(0, 97) + '...' : tcName, [tcName])
 
     return (
-        <div
-            onClick={(e) => {
+        <div className="tc" style={{ borderLeft: `1px solid ${borderColor}` }}>
+            <div onClick={(e) => {
                 if (tc.steps.length > 0) { setShowSteps(v => !v); }
                 e.preventDefault()
                 e.stopPropagation()
-            }}
-            className="tc" style={{ borderLeft: `1px solid ${borderColor}` }}>
-            <div title={(tcName.length !== tcNameAbbrev.length) ? tcName : undefined}>{`${tcNameAbbrev}${tc.executionTimeInSec !== undefined ? `, duration ${tc.executionTimeInSec}s` : ''}${tc.date !== undefined ? ` at ${tc.date.toLocaleString()}` : ''}`}</div>
+            }} title={(tcName.length !== tcNameAbbrev.length) ? tcName : undefined}>{`${tcNameAbbrev}${tc.executionTimeInSec !== undefined ? `, duration ${tc.executionTimeInSec}s` : ''}${tc.date !== undefined ? ` at ${tc.date.toLocaleString()}` : ''}`}</div>
             {tc.originRef && showSteps && <div>{tc.originRef}</div>}
         {tc.desc && showSteps && (showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{tc.desc}</pre>}
         {tc.desc && showSteps && !(showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{descFirstLine}</pre>}
         <ul style={{ paddingLeft: "10px", borderLeft: `1px solid ${borderColor}` }}>
             {showSteps && tc.steps.map((step, idx) => (<TestStepFolder folder={step} key={step.shortName + idx.toString()} />))}
         </ul>
+            {showSteps && tc.testArguments?.length > 0 &&
+                <table className="tcArgs" >
+                    <thead>
+                        <tr><th>Argument Type</th><th>Dir</th><th>Description</th><th>Value</th></tr>
+                    </thead>
+                    <tbody>
+                        {tc.testArguments.map((testArg, idx) =>
+                        (<tr key={'ta_' + idx.toString()} >
+                            <td>{testArg.argType || ''}</td><td>{testArg.direction || ''}</td><td>{testArg.desc || ''}</td>
+                            <td title={testArg.value}>{testArg.value.length > 120 ? '...' + testArg.value.slice(-120) : testArg.value}</td>
+                        </tr>)
+                        )}
+                    </tbody>
+                </table>}
     </div>)
 }
 

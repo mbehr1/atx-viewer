@@ -21,6 +21,11 @@ pre.inline {
     padding: 2px;
     display: inline;
 }
+.tcArgs {}
+
+.tcArgs td {
+    border-bottom: 1px solid darkgray;
+}
 .tcf {
     padding-left: 0.5em;
     margin-top: 4px;
