@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     nodePolyfills({
-      exclude: ['fs'],
+      exclude: [],
       protocolImports: true
     })
   ],

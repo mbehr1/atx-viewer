@@ -661,13 +661,14 @@ const parseTestSteps = (folder: JSONValue[], shortName: string): AtxTestStepFold
 const parseTestStepFolders = (folder: JSONValue): AtxTestStepFolder[] => {
     const folders: AtxTestStepFolder[] = []
     if (!folder || typeof folder !== 'object' || !Array.isArray(folder)) {
-        console.warn(`parseTestStepFolder ignored due to wrong type '${typeof folder}'`, folder)
+        console.warn(`parseTestStepFolders ignored due to wrong type '${typeof folder}'`, folder)
     } else {
         const shortName = getText(folder, 'SHORT-NAME')
         if (typeof shortName === 'string') {
             const longName = getLongName(folder)
             const verdR = getFirstMember(folder, 'VERDICT-RESULT')
             const verdict = verdR && Array.isArray(verdR) ? getText(verdR, 'VERDICT') : undefined
+            const expectedResult = getExpectedResult(folder)
             // but now we iterate over all elems to keep test-step and test-step-folder in proper order:
             const steps: AtxTestStepFolder[] = []
             for (const f of folder) {
@@ -684,12 +685,12 @@ const parseTestStepFolders = (folder: JSONValue): AtxTestStepFolder[] => {
                                 const st = parseTestStepFolders(value)
                                 for (const s of st) { steps.push(s) }
                             } break;
-                        //case 'VERDICT-DEFINITION': break;
+                        case 'VERDICT-DEFINITION': break;
                         case 'SHORT-NAME':
                         case 'VERDICT-RESULT':
                         case 'LONG-NAME': break;
                         default:
-                            console.warn(`parseTestStepFolder unknown key '${key}'`, value, f)
+                            console.warn(`parseTestStepFolders unknown key '${key}'`, value, folder)
                             break;
                     }
                 }
@@ -698,13 +699,14 @@ const parseTestStepFolders = (folder: JSONValue): AtxTestStepFolder[] => {
                 shortName,
                 longName,
                 verdict,
+                expectedResult,
                 steps,
             })
         } else {
-            console.warn(`parseTestStepFolder: ignored f due to wrong shortName '${typeof shortName}'`, shortName)
+            console.warn(`parseTestStepFolders: ignored f due to wrong shortName '${typeof shortName}'`, shortName)
         }
         if (folders.length === 0) {
-            console.warn(`parseTestStepFolder: ignored due to no folders!`, folder)
+            console.warn(`parseTestStepFolders: ignored due to no folders!`, folder)
         }
     }
     return folders
