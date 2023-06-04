@@ -140,9 +140,11 @@ function App() {
       </div>}
       {false && files.length > 0 &&
         files.map((f: File) => (typeof f.name === 'string' ? f.name : '')).join(',') || ''}
-      {testReports.length > 0 && <ol>
+      {testReports.length > 0 && <div style={{ textAlign: 'left' }} >Loaded test reports:
+        <ol>
         {testReports.map((a, idx) => <li key={'' + idx} >{a.shortName}:{getReportTestName(a)}</li>)}
-      </ol>}
+        </ol>
+      </div>}
     </>
   )
 }
