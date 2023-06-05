@@ -172,13 +172,14 @@ export const getReportTestName = (report: AtxTestReport): string => {
     // todo: get from PLANNED-TEST-CASE-FOLDER.SHORT-NAME...
 
     const names = [];
+    names.push(report.plan.shortName)
     for (const tcOrFolder of report.plan.plannedTestCases) {
         if (!('repetition' in tcOrFolder)) {
             const tcFolder = tcOrFolder as AtxPlannedTestCaseFolder
             names.push(tcFolder.shortName)
         }
     }
-
+    // console.log(`getReportTestName returning: '${names.join(',')}' for`, report)
     return names.join(',')
 }
 

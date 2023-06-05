@@ -1,0 +1,17 @@
+.execOverview {
+    border: 0px dashed lightgray;
+    padding: 0.5em;
+}
+
+.execOverviewTitle {
+    font-family: monospace;
+    font-size: x-small;
+    text-align: left;
+    max-width: 30em;
+    white-space: pre-wrap;
+    white-space: -moz-pre-wrap;
+    white-space: -pre-wrap;
+    white-space: -o-pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}

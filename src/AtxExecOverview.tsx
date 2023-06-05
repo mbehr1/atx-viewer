@@ -1,8 +1,15 @@
+/**
+ * todo
+ * [ ] - show single report name as label/title for tooltip is detail tc is selected
+ */
+
 import { Pie } from 'react-chartjs-2'
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AtxTestCase, AtxTestReport, getFolderStats, getReportTestName, getTestCases, mapVerdictToColor, SummaryStats } from './atxReportParser.ts';
 import { Chart, LegendItem } from 'chart.js';
+
+import './AtxExecOverview.css'
 
 // ChartJS.register(ArcElement);
 
@@ -17,6 +24,8 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
 
     // get basic data from atx:
     const [summaryStats, setSummaryStats] = useState<SummaryStats>({ passed: 0, failed: 0, inconclusive: 0, skipped: 1, none: 0, totalExecutionTime: 0 });
+
+    const reportTitle = useMemo(() => reports.map(r => getReportTestName(r)).join(', '), [reports])
 
     useEffect(() => {
         const sumStats: SummaryStats = { passed: 0, failed: 0, inconclusive: 0, skipped: 0, none: 0, totalExecutionTime: 0 };
@@ -95,10 +104,13 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                 plugins: {
                     tooltip: {
                         bodyFont: {
+                            size: 10
+                        },
+                        titleFont: {
                             size: 8
                         },
                         callbacks: {
-                            title: () => reports.map(r => getReportTestName(r)).join(','),
+                            title: () => reportTitle,
                             label: (ctx) => {
                                 let label = ctx.dataset.label || '';
                                 if (label) {
@@ -141,7 +153,7 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                         }
                     },
                     legend: {
-                        title: { text: `${reports.map(r => getReportTestName(r)).join(',')}: ${Number(summaryStats.totalExecutionTime / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })}min`, display: true },
+                        title: { text: `duration: ${Number(summaryStats.totalExecutionTime / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })}min`, display: true },
                         labels: {
                             generateLabels: (() => {
                                 return [
@@ -166,7 +178,10 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                 ]
             }} />
         </div>
-    }, [summaryStats, reports, onDetails]);
+    }, [summaryStats, reports, onDetails, reportTitle]);
 
-    return (<>{pie()}</>)
+    return (<div className='execOverview'>
+        <div className='execOverviewTitle' title={reportTitle}>{reportTitle.slice(-1000)}</div>
+        {pie()}
+    </div>)
 }
