@@ -1,3 +1,8 @@
+/**
+ * todo
+ * [ ] check layout for desc for test step/folder and add folding
+ */
+
 import { useMemo, useState } from "react"
 import { AtxTestCase, AtxTestStepFolder, mapVerdictToColor, getVerdictForFolder } from "./atxReportParser"
 
@@ -83,6 +88,7 @@ const TestStepFolder = (props: TestStepFolderProps) => {
             <span title={(tsName.length !== tsNameAbbrev.length) ? tsName : undefined}>{`${folder.verdict ? folder.verdict + ': ' : ''}${tsNameAbbrev}${showSteps ? '' : `, steps ${folder.steps.length}`}`}</span>
             {folder.expectedResult && <pre className="tcExpectedResult" >{folder.expectedResult}</pre>}
         </div>
+        {showSteps && folder.desc && <pre className="tcDesc">{folder.desc}</pre>}
         {showSteps && folder.steps.length > 0 && <ul>
             {folder.steps.map((step, idx) => (<TestStepFolder folder={step} key={step.shortName + idx.toString()} />))}
         </ul>}

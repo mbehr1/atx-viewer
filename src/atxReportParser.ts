@@ -59,6 +59,7 @@ export interface AtxTestCaseFolder {
 export interface AtxTestStepFolder {
     shortName: string,
     longName?: string,
+    desc?: string,
     verdict?: string,
     expectedResult?: string,
     steps: AtxTestStepFolder[]
@@ -734,6 +735,7 @@ const parseTestStepFolders = (folder: JSONValue): AtxTestStepFolder[] => {
             const verdR = getFirstMember(folder, 'VERDICT-RESULT')
             const verdict = verdR && Array.isArray(verdR) ? getText(verdR, 'VERDICT') : undefined
             const expectedResult = getExpectedResult(folder)
+            const desc = getDesc(folder)
             // but now we iterate over all elems to keep test-step and test-step-folder in proper order:
             const steps: AtxTestStepFolder[] = []
             for (const f of folder) {
@@ -753,6 +755,7 @@ const parseTestStepFolders = (folder: JSONValue): AtxTestStepFolder[] => {
                         case 'VERDICT-DEFINITION': break;
                         case 'SHORT-NAME':
                         case 'VERDICT-RESULT':
+                        case 'DESC':
                         case 'LONG-NAME': break;
                         default:
                             console.warn(`parseTestStepFolders unknown key '${key}'`, value, folder)
@@ -763,6 +766,7 @@ const parseTestStepFolders = (folder: JSONValue): AtxTestStepFolder[] => {
             folders.push({
                 shortName,
                 longName,
+                desc,
                 verdict,
                 expectedResult,
                 steps,
@@ -783,6 +787,7 @@ const parseTestStep = (step: JSONValue): AtxTestStepFolder | undefined => {
     } else {
         const shortName = getText(step, 'SHORT-NAME')
         const longName = getLongName(step)
+        const desc = getDesc(step)
         const verdR = getFirstMember(step, 'VERDICT-RESULT')
         const verdict = verdR && Array.isArray(verdR) ? getText(verdR, 'VERDICT') : undefined
         const expectedResult = getExpectedResult(step)
@@ -793,6 +798,7 @@ const parseTestStep = (step: JSONValue): AtxTestStepFolder | undefined => {
             return {
                 shortName,
                 longName,
+                desc,
                 verdict: typeof verdict === 'string' ? verdict : undefined,
                 expectedResult,
                 steps: []
