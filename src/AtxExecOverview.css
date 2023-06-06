@@ -1,8 +1,20 @@
 .execOverview {
     border: 0px dashed lightgray;
     padding: 0.5em;
+    display: flex;
+        justify-content: center;
 }
 
+.execOverview .chartIcon {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    color: lightgrey
+}
+
+.chartIcon:hover {
+    color: white;
+}
 .execOverviewTitle {
     font-family: monospace;
     font-size: x-small;

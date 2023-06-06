@@ -5,11 +5,32 @@
 
 import { Pie } from 'react-chartjs-2'
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, SVGProps } from 'react';
 import { AtxTestCase, AtxTestReport, getFolderStats, getReportTestName, getTestCases, mapVerdictToColor, SummaryStats } from './atxReportParser.ts';
 import { Chart, LegendItem } from 'chart.js';
 
 import './AtxExecOverview.css'
+
+
+// icon:card-list | Bootstrap https://icons.getbootstrap.com/ | Bootstrap
+// https://reactsvgicons.com/search?q=list license MIT
+function IconCardList(props: SVGProps<SVGSVGElement>) {
+    return (
+        <svg
+            fill="currentColor"
+            viewBox="0 0 16 16"
+            height="1em"
+            width="1em"
+            {...props}
+        >
+            <path d="M14.5 3a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5h13zm-13-1A1.5 1.5 0 000 3.5v9A1.5 1.5 0 001.5 14h13a1.5 1.5 0 001.5-1.5v-9A1.5 1.5 0 0014.5 2h-13z" />
+            <path d="M5 8a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7A.5.5 0 015 8zm0-2.5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm0 5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm-1-5a.5.5 0 11-1 0 .5.5 0 011 0zM4 8a.5.5 0 11-1 0 .5.5 0 011 0zm0 2.5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+        </svg>
+    );
+}
+
+//export default IconCardList;
+
 
 // ChartJS.register(ArcElement);
 
@@ -26,6 +47,7 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
     const [summaryStats, setSummaryStats] = useState<SummaryStats>({ passed: 0, failed: 0, inconclusive: 0, skipped: 1, none: 0, totalExecutionTime: 0 });
 
     const reportTitle = useMemo(() => reports.map(r => getReportTestName(r)).join(', '), [reports])
+    const detailTcs = useMemo(() => reports.map(r => Array.from(getTestCases(r.root))).flat(), [reports]) // .filter(tc => tc.verdict !== 'NONE')
 
     useEffect(() => {
         const sumStats: SummaryStats = { passed: 0, failed: 0, inconclusive: 0, skipped: 0, none: 0, totalExecutionTime: 0 };
@@ -44,7 +66,6 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
     }, [reports])
 
     const pie = useCallback(() => {
-        const detailTcs = reports.map(r => Array.from(getTestCases(r.root))).flat() // .filter(tc => tc.verdict !== 'NONE')
         const execTimes = detailTcs.map(tc => tc.executionTimeInSec)
         const detailsColors = detailTcs.map(tc => {
             return mapVerdictToColor(tc.verdict)
@@ -178,10 +199,26 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                 ]
             }} />
         </div>
-    }, [summaryStats, reports, onDetails, reportTitle]);
+    }, [summaryStats, onDetails, reportTitle, detailTcs]);
 
-    return (<div className='execOverview'>
-        <div className='execOverviewTitle' title={reportTitle}>{reportTitle.slice(-1000)}</div>
-        {pie()}
-    </div>)
+    const onAllTcsClick = useCallback(() => {
+        if (onDetails) {
+            onDetails(detailTcs)
+        }
+    }, [onDetails, detailTcs])
+
+    return (
+        <div className='execOverview'>
+            <div style={{
+                display: 'block', position: 'relative',
+                width: 'max-content'
+            }}>
+                <div className='execOverviewTitle' title={reportTitle}>{reportTitle.slice(-1000)}</div>
+                {pie()}
+                <div className='chartIcon' title='show all testcases' onClick={onAllTcsClick}>
+                    <IconCardList />
+                </div>
+            </div>
+        </div>
+    )
 }
