@@ -69,6 +69,8 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
     }, [reports])
     const detailTcs = useMemo(() => reports.map(r => Array.from(getTestCases(r.root))).flat(), [reports]) // .filter(tc => tc.verdict !== 'NONE')
 
+    const isColorModeDark = useMemo(() => window.matchMedia("(prefers-color-scheme: dark)").matches, [])
+
     useEffect(() => {
         const sumStats: SummaryStats = { passed: 0, failed: 0, inconclusive: 0, skipped: 0, none: 0, totalExecutionTime: 0 };
 
@@ -194,15 +196,15 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                         }
                     },
                     legend: {
-                        title: { color: 'white', text: `duration: ${Number(summaryStats.totalExecutionTime / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })}min`, display: true },
+                        title: { color: isColorModeDark ? 'white' : 'black', text: `duration: ${Number(summaryStats.totalExecutionTime / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })}min`, display: true },
                         labels: {
                             generateLabels: (() => {
                                 return [
-                                    summaryStats.passed > 0 ? { text: `passed:${summaryStats.passed}`, fillStyle: 'green', fontColor: 'white' } : undefined,
-                                    summaryStats.failed > 0 ? { text: `failed:${summaryStats.failed}`, fillStyle: 'red', fontColor: 'white' } : undefined,
-                                    summaryStats.inconclusive > 0 ? { text: `inconclusive:${summaryStats.inconclusive}`, fillStyle: 'yellow', fontColor: 'white' } : undefined,
-                                    summaryStats.skipped > 0 ? { text: `skipped:${summaryStats.skipped}`, fillStyle: 'grey', fontColor: 'white' } : undefined,
-                                    summaryStats.none > 0 ? { text: 'none', fillStyle: 'white', fontColor: 'white' } : undefined,
+                                    summaryStats.passed > 0 ? { text: `passed:${summaryStats.passed}`, fillStyle: 'green', fontColor: isColorModeDark ? 'white' : 'black' } : undefined,
+                                    summaryStats.failed > 0 ? { text: `failed:${summaryStats.failed}`, fillStyle: 'red', fontColor: isColorModeDark ? 'white' : 'black' } : undefined,
+                                    summaryStats.inconclusive > 0 ? { text: `inconclusive:${summaryStats.inconclusive}`, fillStyle: 'yellow', fontColor: isColorModeDark ? 'white' : 'black' } : undefined,
+                                    summaryStats.skipped > 0 ? { text: `skipped:${summaryStats.skipped}`, fillStyle: 'grey', fontColor: isColorModeDark ? 'white' : 'black' } : undefined,
+                                    summaryStats.none > 0 ? { text: 'none', fillStyle: 'white', fontColor: isColorModeDark ? 'white' : 'black' } : undefined,
                                 ].filter(f => f !== undefined) as LegendItem[]
                             })
                         }
@@ -219,7 +221,7 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                 ]
             }} />
         </div>
-    }, [summaryStats, onDetails, reportTitle, detailTcs]);
+    }, [summaryStats, onDetails, reportTitle, detailTcs, isColorModeDark]);
 
     const onAllTcsClick = useCallback(() => {
         if (onDetails) {
