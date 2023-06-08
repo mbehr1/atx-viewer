@@ -211,7 +211,7 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
         <div className='execOverview'>
             <div style={{
                 display: 'block', position: 'relative',
-                width: 'max-content'
+
             }}>
                 <div className='execOverviewTitle' title={reportTitle}>{reportTitle.slice(-1000)}</div>
                 {pie()}

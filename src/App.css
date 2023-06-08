@@ -63,8 +63,17 @@
 }
 
 .testSingleContainer {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-gap: 0.5em;
+  }
+/* these are the tiles for the single reports */
+.testSingleContainer>div {
+  aspect-ratio: 1 / 1.1;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 .read-the-docs {
   color: #888;

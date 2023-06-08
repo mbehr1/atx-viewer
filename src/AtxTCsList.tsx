@@ -45,7 +45,7 @@ const TCNode = (props: TCNodeProps) => {
             {tc.originRef && showSteps && <div>{tc.originRef}</div>}
         {tc.desc && showSteps && (showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{tc.desc}</pre>}
         {tc.desc && showSteps && !(showDesc || !descHasMultiLines) && <pre onClick={(e) => { setShowDesc(v => !v); e.preventDefault(); e.stopPropagation() }} className="tcDesc">{descFirstLine}</pre>}
-        <ul style={{ paddingLeft: "10px", borderLeft: `1px solid ${borderColor}` }}>
+            <ul style={{ paddingLeft: "10px", borderLeft: `1px solid ${borderColor}` }}>
             {showSteps && tc.steps.map((step, idx) => (<TestStepFolder folder={step} key={step.shortName + idx.toString()} />))}
         </ul>
             {showSteps && tc.testArguments?.length > 0 &&

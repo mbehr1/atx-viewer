@@ -17,9 +17,9 @@
 }
 .execOverviewTitle {
     font-family: monospace;
-    font-size: x-small;
+    font-size: clamp(6px, 1vw * 0.7, 1.4rem);
     text-align: left;
-    max-width: 30em;
+        max-width: 100%;
     white-space: pre-wrap;
     white-space: -moz-pre-wrap;
     white-space: -pre-wrap;
