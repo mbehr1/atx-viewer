@@ -39,6 +39,17 @@ interface AtxExecOverviewProps {
     onDetails?: (tcs: AtxTestCase[]) => void
 }
 
+const longestCommonPrefix = (strs: string[]): string => {
+    if (!strs || strs.length === 0) return ""
+    const sortedStrs = strs.sort((a, b) => a.length - b.length)
+    let shortestStr = sortedStrs[0]
+    while (!strs.every((str) => str.startsWith(shortestStr))) {
+        if (shortestStr.length === 0) return ""
+        shortestStr = shortestStr.slice(0, -1)
+    }
+    return shortestStr
+}
+
 export const AtxExecOverview = (props: AtxExecOverviewProps) => {
 
     const { reports, onDetails } = props;
@@ -46,7 +57,16 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
     // get basic data from atx:
     const [summaryStats, setSummaryStats] = useState<SummaryStats>({ passed: 0, failed: 0, inconclusive: 0, skipped: 1, none: 0, totalExecutionTime: 0 });
 
-    const reportTitle = useMemo(() => reports.map(r => getReportTestName(r)).join(', '), [reports])
+    const reportTitle = useMemo(() => {
+        const names = reports.map(r => getReportTestName(r))
+        if (names.length === 1) { return names[0] }
+        const comPrefix = longestCommonPrefix(names)
+        if (comPrefix.length) {
+            return comPrefix + '.. ' + names.map(n => '-' + n.slice(comPrefix.length)).join(', ')
+        } else {
+            return names.join(', ')
+        }
+    }, [reports])
     const detailTcs = useMemo(() => reports.map(r => Array.from(getTestCases(r.root))).flat(), [reports]) // .filter(tc => tc.verdict !== 'NONE')
 
     useEffect(() => {
