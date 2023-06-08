@@ -33,8 +33,11 @@ function App() {
   const [files, setFiles] = useState<File[]>([])
   const [testReports, setTestReports] = useState<AtxTestReport[]>([])
   const [showDetailTCs, setShowDetailTCs] = useState<AtxTestCase[]>([])
+  const [loading, setLoading] = useState<boolean>(false)
 
   const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: FileRejection[],) => {
+    let didSetFiles = false;
+    setLoading(true)
     try {
       //const length = event.dataTransfer.files.length;
       console.log(`onDrop acceptedFile length=${acceptedFiles.length} rejectedFiles: ${rejectedFiles.length}`);
@@ -62,15 +65,20 @@ function App() {
           const nonDuplFiles = xmlFilesFromZipAsFiles.filter(f => !includesFile(d, f));
           return d.concat(nonDuplFiles)
         })
+        didSetFiles = true
       }
       if (posXmlFiles.length > 0) {
         setFiles(d => {
           const nonDuplFiles = posXmlFiles.filter(f => !includesFile(d, f));
           return d.concat(nonDuplFiles)
-        });
+        })
+        didSetFiles = true
       }
     } catch (err) {
       console.error(`onDrop got err=${err}`);
+    }
+    if (!didSetFiles) {
+      setLoading(false)
     }
   }, [])
 
@@ -89,7 +97,8 @@ function App() {
         return reports
       } catch (e) {
         console.log(`parser.parse failed with: '${e}'`)
-    }
+      }
+      setLoading(false)
       return [];
     }))
       .then(reports => reports.filter(r => r !== undefined && r.length > 0))
@@ -106,7 +115,7 @@ function App() {
         })
         return reports
       })
-      .then(reports => { if (reports) setTestReports(reports) })
+      .then(reports => { setLoading(false); if (reports) setTestReports(reports) })
   }, [files])
 
   const execOverviewTotal = <div className='testSummaryContainer' key={'AtxExecOverview#Total'}><div className='testSummaryItem' ></div><div className='testSummaryItem'>{<AtxExecOverview onDetails={(tcs) => setShowDetailTCs(tcs)} reports={testReports} />}</div> <div className='testSummaryItem'></div></div>;
@@ -125,6 +134,8 @@ function App() {
           </section>
         )}
       </Dropzone>
+      {loading && <>
+        <div id="progress" className='indeterminateProgressBar'><div className='indeterminateProgressBarProgress' /></div></>}
       <div className="card">
         {files.length === 0 && <p>
           Open a asam atx test report file...
