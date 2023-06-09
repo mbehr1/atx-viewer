@@ -19,7 +19,7 @@
     font-family: monospace;
     font-size: clamp(6px, 1vw * 0.7, 1.4rem);
     text-align: left;
-        max-width: 100%;
+        max-width: 30rem;
     white-space: pre-wrap;
     white-space: -moz-pre-wrap;
     white-space: -pre-wrap;
