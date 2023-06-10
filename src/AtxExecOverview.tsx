@@ -198,6 +198,7 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                     legend: {
                         title: { color: isColorModeDark ? 'white' : 'black', text: `duration: ${Number(summaryStats.totalExecutionTime / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })}min`, display: true },
                         labels: {
+                            boxWidth: 16,
                             generateLabels: (() => {
                                 return [
                                     summaryStats.passed > 0 ? { text: `passed:${summaryStats.passed}`, fillStyle: 'green', fontColor: isColorModeDark ? 'white' : 'black' } : undefined,
