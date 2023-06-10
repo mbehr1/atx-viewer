@@ -57,16 +57,19 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
     // get basic data from atx:
     const [summaryStats, setSummaryStats] = useState<SummaryStats>({ passed: 0, failed: 0, inconclusive: 0, skipped: 1, none: 0, totalExecutionTime: 0 });
 
+    const reportNames = useMemo(() => reports.map(r => getReportTestName(r)), [reports])
+    const reportTitleComPrefix = useMemo(() => longestCommonPrefix(reportNames), [reportNames])
+
     const reportTitle = useMemo(() => {
-        const names = reports.map(r => getReportTestName(r))
-        if (names.length === 1) { return names[0] }
-        const comPrefix = longestCommonPrefix(names)
-        if (comPrefix.length) {
-            return comPrefix + '.. ' + names.map(n => '-' + n.slice(comPrefix.length)).join(', ')
+
+        if (reportNames.length === 1) { return reportNames[0] }
+        if (reportTitleComPrefix.length) {
+            return reportTitleComPrefix + '.. ' + reportNames.map(n => '-' + n.slice(reportTitleComPrefix.length)).join(', ')
         } else {
-            return names.join(', ')
+            return reportNames.join(', ')
         }
-    }, [reports])
+    }, [reportNames, reportTitleComPrefix])
+
     const detailTcs = useMemo(() => reports.map(r => Array.from(getTestCases(r.root))).flat(), [reports]) // .filter(tc => tc.verdict !== 'NONE')
 
     const isColorModeDark = useMemo(() => window.matchMedia("(prefers-color-scheme: dark)").matches, [])
@@ -236,7 +239,7 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                 display: 'block', position: 'relative',
                 maxWidth: '100%'
             }}>
-                <div className='execOverviewTitle' title={reportTitle}>{reportTitle.slice(-1000)}</div>
+                <div className='execOverviewTitle' title={reportTitle}>{reports.length > 1 ? `Summary of ${reports.length} reports: ${reportTitleComPrefix}..` : reportTitle.slice(-100)}</div>
                 {pie()}
                 <div className='chartIcon' title='show all testcases' onClick={onAllTcsClick}>
                     <IconCardList />
