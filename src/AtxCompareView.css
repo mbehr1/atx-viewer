@@ -1,0 +1,13 @@
+.compareContainer {
+    display: grid;
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 1fr 1fr;
+}
+
+.compareContainer>div {
+    max-width: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}

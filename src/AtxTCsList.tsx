@@ -13,7 +13,12 @@ interface AtxTCsListProps {
     tcs: AtxTestCase[]
 }
 export const AtxTCsList = (props: AtxTCsListProps) => {
-    return <div>{props.tcs.map((tc, idx, arr) => (<TCNode expandSteps={arr.length === 1} tc={tc} key={tc.shortName + idx.toString()} />))}</div>
+    return <div>{atxTCsListChilds(props)}</div>
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const atxTCsListChilds = (props: AtxTCsListProps) => {
+    return props.tcs.map((tc, idx, arr) => (<TCNode expandSteps={arr.length === 1} tc={tc} key={tc.shortName + idx.toString()} />))
 }
 
 interface TCNodeProps {
