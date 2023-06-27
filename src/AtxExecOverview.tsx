@@ -241,9 +241,9 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
             }}>
                 <div className='execOverviewTitle' title={reportTitle}>{reports.length > 1 ? `Summary of ${reports.length} reports: ${reportTitleComPrefix}..` : reportTitle.slice(-100)}</div>
                 {pie()}
-                <div className='chartIcon' title='show all testcases' onClick={onAllTcsClick}>
+                {onDetails && <div className='chartIcon' title='show all testcases' onClick={onAllTcsClick}>
                     <IconCardList />
-                </div>
+                </div>}
             </div>
         </div>
     )
