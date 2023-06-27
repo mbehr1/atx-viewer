@@ -118,6 +118,20 @@ export interface AtxPlannedTestCase {
     testCaseRef: string,
 }
 
+/**
+ * recurively (depth first) get all the test cases from a folder
+ * @param folder 
+ */
+export function* getPlannedTestCases(folder: AtxPlannedTestCaseFolder): IterableIterator<AtxPlannedTestCase> {
+    for (const tcOrFolder of folder.plannedTestCases) {
+        if ('repetition' in tcOrFolder) {
+            yield tcOrFolder
+        } else {
+            yield* getPlannedTestCases(tcOrFolder)
+        }
+    }
+}
+
 export interface SummaryStats {
     passed: number,
     failed: number,
@@ -532,7 +546,8 @@ const parsePlannedTestCases = (testCases: JSONValue[]): (AtxPlannedTestCase | At
                             if (f.length) { res.push(...f) }
                         } break;
                         case 'PLANNED-TEST-CASE': {
-                            //  todo const t = parsePlannedTestCase(value as JSONObject[]); if (t.length) { res.push(...t) }
+                            const t = parsePlannedTestCase(value);
+                            if (t.length) { res.push(...t) }
                         }
                             break;
                         default:
@@ -566,6 +581,35 @@ const parsePlannedTestCaseFolder = (folder: JSONObject[]): AtxPlannedTestCaseFol
         }
     } catch (e) {
         console.warn(`parsePlannedTestCaseFolder got err=${e}`)
+    }
+    return res
+}
+
+const parsePlannedTestCase = (testCase: JSONValue): AtxPlannedTestCase[] => {
+    const res: AtxPlannedTestCase[] = []
+    try {
+        if (Array.isArray(testCase)) {
+            const shortName = getText(testCase, 'SHORT-NAME')
+            const testCaseRef = getText(testCase, 'TEST-CASE-REF')
+            const repetition = Number(getText(testCase, 'REPETITION'))
+            if (shortName && testCaseRef) {
+                const tc: AtxPlannedTestCase = {
+                    shortName,
+                    repetition,
+                    testCaseRef,
+                }
+                if (tc.repetition !== 1) {
+                    console.log(`parsePlannedTestCase with repetition !=1`, tc)
+                }
+                res.push(tc)
+            } else {
+                console.warn(`parsePlannedTestCase ignoring test case due to missing values ${JSON.stringify(testCase)}`)
+            }
+        } else {
+            console.warn(`parsePlannedTestCase ignoring due to no array ${JSON.stringify(testCase)}`)
+        }
+    } catch (e) {
+        console.warn(`parsePlannedTestCase got err=${e}`)
     }
     return res
 }
