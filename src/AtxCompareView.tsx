@@ -101,7 +101,7 @@ export const AtxCompareView = (props: AtxCompareViewProps) => {
                 }
                 const regTcChilds = atxTCsListChilds({ tcs: regressedTcs.flat() })
                 const impTcChilds = atxTCsListChilds({ tcs: improvedTcs.flat() })
-                return <div className="compareContainer">
+                return <div key={'ccTpCommon' + idx} className="compareContainer">
                     <div>{tpA.shortName}</div>
                     <div>{tpB.shortName}</div>
                     <div><AtxExecOverview reports={[tpA]} /></div>
@@ -113,8 +113,8 @@ export const AtxCompareView = (props: AtxCompareViewProps) => {
         </div>}
         {tpMissingInB.length > 0 && <div>
             <h4>Test plans in reference only:</h4>
-            {tpMissingInB.map((tpA) => {
-                return <div className="compareContainer">
+            {tpMissingInB.map((tpA, idx) => {
+                return <div key={'ccTpMissingInB' + idx} className="compareContainer">
                     <div>{tpA.shortName}</div>
                     <div />
                     <AtxExecOverview reports={[tpA]} />
@@ -124,8 +124,8 @@ export const AtxCompareView = (props: AtxCompareViewProps) => {
         </div>}
         {tpNewInB.length > 0 && <div>
             <h4>Test plans not in reference:</h4>
-            {tpNewInB.map((tpB) => {
-                return <div className="compareContainer">
+            {tpNewInB.map((tpB, idx) => {
+                return <div key={'ccTpNewInB' + idx} className="compareContainer">
                     <div />
                     <div>{tpB.shortName}</div>
                     <div />
