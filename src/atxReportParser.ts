@@ -36,6 +36,7 @@ export interface AtxTestCase {
     originRef?: string, // from <ORIGIN-REF DEST="TEST-CASE">...
     steps: AtxTestStepFolder[],
     testArguments: AtxTestCaseArgument[], // ARGUMENT-LIST/ARGUMENTS/TEST-ARGUMENT-ELEMENT...
+    testConstants: { [key: string]: string }, // TEST-CONSTANTS/TEST-CONSTANT-ELEMENT.SHORT-NAME:VALUE
 }
 
 export interface AtxTestCaseArgument {
@@ -534,6 +535,40 @@ const getTestArguments = (tc: JSONValue): AtxTestCaseArgument[] => {
     return res
 }
 
+const getTestConstants = (tc: JSONValue): { [key: string]: string } => {
+    const res: { [key: string]: string } = {}
+    try {
+        const tConsts = getFirstMember(tc, ['TEST-CONSTANTS'])
+        if (Array.isArray(tConsts)) {
+            //console.log(`getTestConstants #=${tConsts.length}`, tConsts[0])
+            for (const tCon of tConsts) {
+                if (typeof tCon === 'object' && 'TEST-CONSTANT-ELEMENT' in tCon) {
+                    const tce = tCon['TEST-CONSTANT-ELEMENT']
+                    if (Array.isArray(tce)) {
+                        const shortName = getText(tce, 'SHORT-NAME')
+                        const valueO = getFirstMember(tce, ['VALUE', 'TEXT-VALUE-SPECIFICATION'])
+                        const value2 = Array.isArray(valueO) ? getText(valueO, 'VALUE') : undefined
+                        if (shortName && shortName.length > 0 && value2 && value2.length > 0) {
+                            if (shortName in res) {
+                                console.warn(`getTestConstants duplicate constant '${shortName}'`, tCon, res)
+                            } else {
+                                res[shortName] = value2
+                            }
+                        }
+                    } else {
+                        console.warn(`getTestConstants invalid TEST-CONSTANT-ELEMENT`, tCon)
+                    }
+                } else {
+                    console.warn(`getTestConstants invalid type`, tCon)
+                }
+            }
+        }
+    } catch (e) {
+        console.warn(`getTestArguments got err=${e}`)
+    }
+    return res
+}
+
 const parsePlannedTestCases = (testCases: JSONValue[]): (AtxPlannedTestCase | AtxPlannedTestCaseFolder)[] => {
     const res: (AtxPlannedTestCase | AtxPlannedTestCaseFolder)[] = []
     if (Array.isArray(testCases)) {
@@ -682,6 +717,7 @@ const parseTestCase = (testCase: JSONObject[]): AtxTestCase | undefined => {
                     const date = getElementDate(testCase)
                     const originRef = getText(testCase, 'ORIGIN-REF')
                     const testArguments: AtxTestCaseArgument[] = getTestArguments(testCase)
+                    const testConstants = getTestConstants(testCase)
 
                     const testC: AtxTestCase = {
                         shortName,
@@ -691,7 +727,8 @@ const parseTestCase = (testCase: JSONObject[]): AtxTestCase | undefined => {
                         executionTimeInSec: execTime ? Number(execTime) : undefined,
                         originRef,
                         steps,
-                        testArguments
+                        testArguments,
+                        testConstants,
                     }
                     {
                         const tsfo = getFirstMember(testCase, 'TEST-SETUP-STEPS')
