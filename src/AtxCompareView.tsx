@@ -74,7 +74,7 @@ export const AtxCompareView = (props: AtxCompareViewProps) => {
             const [regressed, improved] = commonTCs.filter(([a, b]) => a.verdict !== b.verdict)
                 .reduce((acc, cur, i, arr) => (acc[arr[i][0].verdict === 'PASSED' ? 0 : 1].push(cur), acc), [[], []] as [[AtxTestCase, AtxTestCase][], [AtxTestCase, AtxTestCase][]])
             allRegressedTcs.push(...regressed) // todo optimize (push not needed)
-            allImprovedTcs.push(...improved.filter(([a, b]) => b.verdict === 'PASSED'))
+            allImprovedTcs.push(...improved.filter(([, b]) => b.verdict === 'PASSED'))
             return [allRegressedTcs, allImprovedTcs]
         })
     }, [tpCommon])
