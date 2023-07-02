@@ -142,7 +142,7 @@ export interface SummaryStats {
     totalExecutionTime: number,
 }
 
-export const getFolderStats = (folder: AtxTestCaseFolder): SummaryStats => {
+export const getFolderStats = (folder: AtxTestCaseFolder, filterFn?: (tc: AtxTestCase) => boolean): SummaryStats => {
     const stats = {
         passed: 0,
         failed: 0,
@@ -155,20 +155,22 @@ export const getFolderStats = (folder: AtxTestCaseFolder): SummaryStats => {
     for (const tcOrFolder of folder.testCases) {
         if ('verdict' in tcOrFolder) {
             const tc = tcOrFolder as AtxTestCase
-            stats.totalExecutionTime += tc.executionTimeInSec || 0;
-            switch (tc.verdict) {
-                case 'PASSED': stats.passed += 1; break;
-                case 'ERROR': // fallthrough
-                case 'FAILED': stats.failed += 1; break;
-                case 'INCONCLUSIVE': stats.inconclusive += 1; break;
-                case 'NONE': stats.none += 1; break;
-                default:
-                    console.log(`AtxExecOverview.processTestCases unknown verdict:'${tc.verdict}'`);
-                    stats.skipped += 1; break;
+            if (filterFn === undefined || filterFn(tc)) {
+                stats.totalExecutionTime += tc.executionTimeInSec || 0;
+                switch (tc.verdict) {
+                    case 'PASSED': stats.passed += 1; break;
+                    case 'ERROR': // fallthrough
+                    case 'FAILED': stats.failed += 1; break;
+                    case 'INCONCLUSIVE': stats.inconclusive += 1; break;
+                    case 'NONE': stats.none += 1; break;
+                    default:
+                        console.log(`AtxExecOverview.processTestCases unknown verdict:'${tc.verdict}'`);
+                        stats.skipped += 1; break;
+                }
             }
         } else {
             const tcFolder = tcOrFolder as AtxTestCaseFolder
-            const fStats = getFolderStats(tcFolder)
+            const fStats = getFolderStats(tcFolder, filterFn)
             stats.passed += fStats.passed
             stats.failed += fStats.failed
             stats.inconclusive += fStats.inconclusive

@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 
-import { Chart as ChartJS, ArcElement, Title, Tooltip, Legend } from 'chart.js'
+import { Chart as ChartJS, ArcElement, BarController, Title, Tooltip, Legend, registerables } from 'chart.js'
 import { fromEvent } from 'file-selector';
 import { Buffer } from 'node:buffer'
 
-ChartJS.register(ArcElement, Tooltip, Legend, Title);
+ChartJS.register(ArcElement, BarController, Tooltip, Legend, Title, ...registerables); // todo optimize/get rid of registerables
 
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -23,6 +23,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DifferenceIcon from '@mui/icons-material/Difference';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import { AtxStatsBarChart } from './AtxStatsBarChart';
 
 type JSONValue = | string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
 export type JSONObject = { [x: string]: JSONValue };
@@ -173,7 +174,11 @@ function App() {
       .then(reports => { setLoading(false); if (reports) setTestReports(reports) })
   }, [files, setTestReports])
 
-  const execOverviewTotal = <div className='testSummaryContainer' key={'AtxExecOverview#Total'}><div className='testSummaryItem' ></div><div className='testSummaryItem'>{<AtxExecOverview onDetails={(tcs) => setShowDetailTCs(tcs)} reports={testReports} />}</div> <div className='testSummaryItem'></div></div>;
+  const execOverviewTotal = <div className='testSummaryContainer' key={'AtxExecOverview#Total'}>
+    <div className='testSummaryItem' ></div>
+    <div className='testSummaryItem'>{<AtxExecOverview key={'ExecOverview'} onDetails={(tcs) => setShowDetailTCs(tcs)} reports={testReports} />}</div>
+    <div className='testSummaryItem'>{<AtxStatsBarChart key={'StatsBarChart'} reports={testReports} />}</div>
+  </div>;
   const execOverviews = testReports.map((report, idx) => <AtxExecOverview key={'AtxExecOverview#' + idx} reports={[report]} onDetails={(tcs) => setShowDetailTCs(tcs)} />);
   const compareView = refToCompare ? <AtxCompareView scrollToRef={compareViewRef} a={references.find((r) => r.name === refToCompare)?.reports || []} b={testReports} /> : undefined
 
@@ -272,9 +277,9 @@ function App() {
                 onClose={handleCompareMenuClose}
               >
                 {testReports.length > 0 && [ // todo and not part of references...
-                  <MenuItem onClick={() => { setReferences((r) => [{ name: `Reference from ${new Date().toLocaleDateString()}`, reports: testReports }, ...r]); handleCompareMenuClose(); }}>Add current report as reference...</MenuItem>,
-                  <Divider />]}
-                <MenuItem>
+                  <MenuItem key={'menuitem_addref'} onClick={() => { setReferences((r) => [{ name: `Reference from ${new Date().toLocaleDateString()}`, reports: testReports }, ...r]); handleCompareMenuClose(); }}>Add current report as reference...</MenuItem>,
+                  <Divider key={'menuitem_divider1'} />]}
+                <MenuItem key={'menuitem_references'}>
                   <SelectReferenceForm references={references} onSetRef={(v) => { handleCompareMenuClose(); setRefToCompare(v); if (compareViewRef && compareViewRef.current) { compareViewRef.current.scrollIntoView() } }} />
                 </MenuItem>
               </Menu>
