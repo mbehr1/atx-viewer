@@ -5,6 +5,7 @@
 import { Bar } from "react-chartjs-2"
 import { AtxTestCase, AtxTestReport, SummaryStats, getFolderStats } from "./atxReportParser"
 import { useCallback, useEffect, useState } from "react"
+import { Context as DataLabelsContext } from "chartjs-plugin-datalabels"
 
 interface AtxStatsBarChartProps {
     reports: AtxTestReport[]
@@ -115,6 +116,12 @@ export const AtxStatsBarChart = (props: AtxStatsBarChartProps) => {
                         title: {
                             text: "Status per TT_TESTSCRIPT_ID",
                             display: true
+                        },
+                        datalabels: {
+                            display: (ctx: DataLabelsContext) => { return ctx.dataset.data[ctx.dataIndex] !== 0 },
+                            color: (ctx: DataLabelsContext) => { return ctx.datasetIndex <= 1 ? 'white' : 'black' }, // or mode dependent black? here: passed/failed always black, rest white
+                            align: 'center',
+                            anchor: 'center'
                         }
                     }
                 }}

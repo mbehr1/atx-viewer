@@ -148,6 +148,9 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
                     }
                 },
                 plugins: {
+                    datalabels: {
+                        display: false,
+                    },
                     tooltip: {
                         bodyFont: {
                             size: 10

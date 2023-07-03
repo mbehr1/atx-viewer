@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 
 import { Chart as ChartJS, ArcElement, BarController, Title, Tooltip, Legend, registerables } from 'chart.js'
+import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { fromEvent } from 'file-selector';
 import { Buffer } from 'node:buffer'
 
-ChartJS.register(ArcElement, BarController, Tooltip, Legend, Title, ...registerables); // todo optimize/get rid of registerables
+ChartJS.register(ArcElement, BarController, Tooltip, Legend, Title, ChartDataLabels, ...registerables); // todo optimize/get rid of registerables
 
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
