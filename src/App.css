@@ -89,6 +89,7 @@
 .testSummaryItem {
   flex-shrink: 0;
   flex-basis: 33%;
+  min-width: 0;
 }
 
 .testSingleContainer {

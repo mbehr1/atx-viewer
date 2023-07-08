@@ -178,7 +178,7 @@ function App() {
   const execOverviewTotal = <div className='testSummaryContainer' key={'AtxExecOverview#Total'}>
     <div className='testSummaryItem' ></div>
     <div className='testSummaryItem'>{<AtxExecOverview key={'ExecOverview'} onDetails={(tcs) => setShowDetailTCs(tcs)} reports={testReports} />}</div>
-    <div className='testSummaryItem'>{<AtxStatsBarChart key={'StatsBarChart'} reports={testReports} />}</div>
+    <div className='testSummaryItem' style={{ display: 'flex' }}>{<AtxStatsBarChart key={'StatsBarChart'} reports={testReports} />}</div>
   </div>;
   const execOverviews = testReports.map((report, idx) => <AtxExecOverview key={'AtxExecOverview#' + idx} reports={[report]} onDetails={(tcs) => setShowDetailTCs(tcs)} />);
   const compareView = refToCompare ? <AtxCompareView scrollToRef={compareViewRef} a={references.find((r) => r.name === refToCompare)?.reports || []} b={testReports} /> : undefined

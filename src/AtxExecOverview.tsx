@@ -103,7 +103,7 @@ export const AtxExecOverview = (props: AtxExecOverviewProps) => {
             hoverOffset: 20,
             _privData: detailTcs, 
         }
-        return <div >
+        return <div style={{ position: 'relative' }}>
             <Pie options={{
                 onClick: (e) => {
                     try {

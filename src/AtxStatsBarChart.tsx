@@ -6,6 +6,7 @@ import { Bar } from "react-chartjs-2"
 import { AtxTestCase, AtxTestReport, SummaryStats, getFolderStats } from "./atxReportParser"
 import { useCallback, useEffect, useState } from "react"
 import { Context as DataLabelsContext } from "chartjs-plugin-datalabels"
+import { useElementSize } from 'usehooks-ts'
 
 interface AtxStatsBarChartProps {
     reports: AtxTestReport[]
@@ -96,10 +97,15 @@ export const AtxStatsBarChart = (props: AtxStatsBarChartProps) => {
         setGteq1Stats(gtEq1Stats)
     }, [reports])
 
-    const bar = useCallback(() => {
-        return <div>
+    const [chartContRef, chartContSize] = useElementSize()
+
+    const bar = useCallback(() => { // see https://www.chartjs.org/docs/latest/configuration/responsive.html#important-note
+        const { width, height } = chartContSize
+        return <div style={{ overflow: 'hidden', position: 'relative', width: width > 0 ? width : undefined, height: height > 0 ? height : undefined }}>
             <Bar
                 options={{
+                    resizeDelay: 100,
+                    responsive: true,
                     indexAxis: 'y',
                     scales: {
                         x: {
@@ -115,7 +121,7 @@ export const AtxStatsBarChart = (props: AtxStatsBarChartProps) => {
                         },
                         title: {
                             text: "Status per TT_TESTSCRIPT_ID",
-                            display: true
+                            display: false
                         },
                         datalabels: {
                             display: (ctx: DataLabelsContext) => { return ctx.dataset.data[ctx.dataIndex] !== 0 },
@@ -136,18 +142,30 @@ export const AtxStatsBarChart = (props: AtxStatsBarChartProps) => {
                     ]
                 }} />
         </div>
-    }, [gteq1Stats, allItStats])
+    }, [gteq1Stats, allItStats, chartContSize])
 
     if (nrTestScripts === 0) {
         return (<div></div>)
     }
 
+    /**
+     * to embedd a chart that uses the full available size (but not more) and is responsive on window resize and
+     * on zoom/scale changes we do:
+     * - place this inside a flex container (done outside with display:'flex'
+     * - use a grid with gridTemplateRows: 'max-content 1fr", width: 100% to use full width and have a title with content height
+     *   and the chart with the remaining height
+     * - use a div with overflow: hidden, position relative
+     * - use a    div with position: absolute, top:0, left:0, width:100%, height:100% 
+     * - use the elementSize from this div to support better zooming
+     * - use a       div width/height: (from elementSize), position:relative (as requested by responsive chartjs docu)
+     * - use the        chart
+     */
+
     return (
-        <div className='execOverview'>
-            <div style={{
-                display: 'block', position: 'relative', maxWidth: '100%'
-            }}>
-                <div className='execOverviewTitle' title={'TEST-CONSTANT.TT_TESTSCRIPT_ID'}>
+        <div style={{ display: 'grid', gridTemplateRows: 'max-content 1fr', width: '100%' }}>
+            <div className='execOverviewTitle' title={'TEST-CONSTANT.TT_TESTSCRIPT_ID'} >Status per TT_TESTSCRIPT_ID</div>
+            <div style={{ overflow: 'hidden', position: 'relative' }} >
+                <div ref={chartContRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
                     {bar()}
                 </div>
             </div>
