@@ -6,7 +6,6 @@ import { Bar } from "react-chartjs-2"
 import { AtxTestCase, AtxTestReport, SummaryStats, getFolderStats } from "./atxReportParser"
 import { useCallback, useEffect, useState } from "react"
 import { Context as DataLabelsContext } from "chartjs-plugin-datalabels"
-import { useElementSize } from 'usehooks-ts'
 
 interface AtxStatsBarChartProps {
     reports: AtxTestReport[]
@@ -97,11 +96,8 @@ export const AtxStatsBarChart = (props: AtxStatsBarChartProps) => {
         setGteq1Stats(gtEq1Stats)
     }, [reports])
 
-    const [chartContRef, chartContSize] = useElementSize()
-
     const bar = useCallback(() => { // see https://www.chartjs.org/docs/latest/configuration/responsive.html#important-note
-        const { width, height } = chartContSize
-        return <div style={{ overflow: 'hidden', position: 'relative', width: width > 0 ? width : undefined, height: height > 0 ? height : undefined }}>
+        return <div style={{ overflow: 'hidden', position: 'relative', width: '100%', height: '100%' }}>
             <Bar
                 options={{
                     resizeDelay: 100,
@@ -142,7 +138,7 @@ export const AtxStatsBarChart = (props: AtxStatsBarChartProps) => {
                     ]
                 }} />
         </div>
-    }, [gteq1Stats, allItStats, chartContSize])
+    }, [gteq1Stats, allItStats])
 
     if (nrTestScripts === 0) {
         return (<div></div>)
@@ -156,8 +152,7 @@ export const AtxStatsBarChart = (props: AtxStatsBarChartProps) => {
      *   and the chart with the remaining height
      * - use a div with overflow: hidden, position relative
      * - use a    div with position: absolute, top:0, left:0, width:100%, height:100% 
-     * - use the elementSize from this div to support better zooming
-     * - use a       div width/height: (from elementSize), position:relative (as requested by responsive chartjs docu)
+     * - use a       div width/height: 100%, position:relative (as requested by responsive chartjs docu)
      * - use the        chart
      */
 
@@ -165,7 +160,7 @@ export const AtxStatsBarChart = (props: AtxStatsBarChartProps) => {
         <div style={{ display: 'grid', gridTemplateRows: 'max-content 1fr', width: '100%' }}>
             <div className='execOverviewTitle' title={'TEST-CONSTANT.TT_TESTSCRIPT_ID'} >Status per TT_TESTSCRIPT_ID</div>
             <div style={{ overflow: 'hidden', position: 'relative' }} >
-                <div ref={chartContRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
                     {bar()}
                 </div>
             </div>
