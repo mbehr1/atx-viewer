@@ -25,6 +25,9 @@ import DifferenceIcon from '@mui/icons-material/Difference';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { AtxStatsBarChart } from './AtxStatsBarChart';
+import { SelectReferenceForm } from './SelectReferenceForm';
+import { addReferenceReport, db } from './db';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 type JSONValue = | string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
 export type JSONObject = { [x: string]: JSONValue };
@@ -54,42 +57,33 @@ const useLocalStorage = <T,>(storageKey: string, initialState: T): [T, React.Dis
   return [value, setVal]
 }
 
-interface ReferenceType {
-  name: string,
-  reports: AtxTestReport[]
-}
-
-interface SelectReferenceFormProps {
-  references: ReferenceType[]
-  onSetRef: (reference: string) => void,
-}
-const SelectReferenceForm = (props: SelectReferenceFormProps) => {
-
-  const [selectedName, setSelectedName] = useState(props.references.length > 0 ? props.references[0].name : undefined)
-
-  return (
-    <form onSubmit={(e) => {
-      console.log(`diff... ${selectedName} called`)
-      props.onSetRef(selectedName || '')
-      e.preventDefault()
-    }}>
-      <label>
-        Select reference reports for comparision:
-        <select value={selectedName} onChange={e => setSelectedName(e.target.value)}>
-          {props.references.map((r, idx) => <option key={`${idx}_${r.name}`} value={r.name}>{r.name}</option>)}
-        </select>
-      </label>
-      <input type="submit" value="compare" />
-    </form>)
-}
-
 function App() {
-  const [references, setReferences] = useLocalStorage<ReferenceType[]>('references', [])
+  const [referenceIdToCompare, setReferenceIdToCompare] = useLocalStorage<number>('referenceIdToCompare', 0) // the db.Reference.id to compare with (seems like 0 is not used...)
   const [files, setFiles] = useState<File[]>([])
   const [testReports, setTestReports] = useState<AtxTestReport[]>([])
   const [showDetailTCs, setShowDetailTCs] = useState<AtxTestCase[]>([])
   const [loading, setLoading] = useState<boolean>(false)
-  const [refToCompare, setRefToCompare] = useState<string>()
+
+  const referenceReportsToCompare = useLiveQuery(
+    async () => {
+      const references = await db.references.get(referenceIdToCompare)
+      const reports: AtxTestReport[] = []
+      if (references) {
+        for (const rid of references.reportIds) {
+          const report = await db.reports.get(rid)
+          if (report) {
+            reports.push(report.report)
+          } else {
+            console.warn(`referenceReportsToCompare: report with rid=${rid} not found!`)
+          }
+        }
+        return reports
+      }
+      return undefined
+    },
+    [referenceIdToCompare]
+  )
+
   const compareViewRef = useRef<HTMLDivElement>(null) // todo works only on 2nd click...
 
   const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: FileRejection[],) => {
@@ -181,7 +175,7 @@ function App() {
     <div className='testSummaryItem' style={{ display: 'flex' }}>{<AtxStatsBarChart key={'StatsBarChart'} reports={testReports} />}</div>
   </div>;
   const execOverviews = testReports.map((report, idx) => <AtxExecOverview key={'AtxExecOverview#' + idx} reports={[report]} onDetails={(tcs) => setShowDetailTCs(tcs)} />);
-  const compareView = refToCompare ? <AtxCompareView scrollToRef={compareViewRef} a={references.find((r) => r.name === refToCompare)?.reports || []} b={testReports} /> : undefined
+  const compareView = referenceReportsToCompare && referenceReportsToCompare.length > 0 ? <AtxCompareView scrollToRef={compareViewRef} a={referenceReportsToCompare} b={testReports} /> : undefined
 
   const Drop = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -258,13 +252,13 @@ function App() {
             </Drop>
             <IconButton aria-label='clear reports' size='large' color='inherit'
               disabled={!(files.length > 0 || testReports.length > 0)}
-              onClick={() => { setFiles([]); setTestReports([]); setRefToCompare(undefined); }}>
+              onClick={() => { setFiles([]); setTestReports([]); setReferenceIdToCompare(0) }}>
               <MuiTooltip title="Clear reports">
                 <DeleteForeverIcon />
               </MuiTooltip>
             </IconButton>
             <div>
-              <IconButton disabled size="large" aria-controls='menu-compare' aria-haspopup='true' onClick={handleCompareMenu} color='inherit'>
+              <IconButton size="large" aria-controls='menu-compare' aria-haspopup='true' onClick={handleCompareMenu} color='inherit'>
                 <MuiTooltip title="Compare report">
                   <DifferenceIcon />
                 </MuiTooltip>
@@ -278,10 +272,10 @@ function App() {
                 onClose={handleCompareMenuClose}
               >
                 {testReports.length > 0 && [ // todo and not part of references...
-                  <MenuItem key={'menuitem_addref'} onClick={() => { setReferences((r) => [{ name: `Reference from ${new Date().toLocaleDateString()}`, reports: testReports }, ...r]); handleCompareMenuClose(); }}>Add current report as reference...</MenuItem>,
+                  <MenuItem key={'menuitem_addref'} onClick={() => { addReferenceReport(`Reference from ${new Date().toLocaleDateString()}`, testReports); handleCompareMenuClose(); }}>Add current report as reference...</MenuItem>,
                   <Divider key={'menuitem_divider1'} />]}
                 <MenuItem key={'menuitem_references'}>
-                  <SelectReferenceForm references={references} onSetRef={(v) => { handleCompareMenuClose(); setRefToCompare(v); if (compareViewRef && compareViewRef.current) { compareViewRef.current.scrollIntoView() } }} />
+                  <SelectReferenceForm referenceId={referenceIdToCompare} onSetRef={(v) => { handleCompareMenuClose(); setReferenceIdToCompare(v ? v : 0); if (compareViewRef && compareViewRef.current) { compareViewRef.current.scrollIntoView() } }} />
                 </MenuItem>
               </Menu>
             </div>
